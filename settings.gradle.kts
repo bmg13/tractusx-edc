@@ -47,7 +47,7 @@ include(":edc-extensions:provision-additional-headers")
 include(":edc-extensions:federated-catalog")
 include(":edc-extensions:edr:edr-api-v2")
 include(":edc-extensions:edr:edr-callback")
-include("edc-extensions:edr:edr-index-lock-sql")
+include(":edc-extensions:edr:edr-index-lock-sql")
 include(":edc-extensions:cx-policy")
 include(":edc-extensions:dcp:tx-dcp")
 include(":edc-extensions:dcp:tx-dcp-sts-dim")
@@ -117,7 +117,7 @@ pluginManagement {
 }
 
 plugins {
-    id("com.gradle.develocity") version "4.0"
+    id("com.gradle.develocity") version "4.0.1"
     id("com.gradle.common-custom-user-data-gradle-plugin") version "2.2.1"
 }
 

@@ -97,6 +97,8 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 put("web.http.management.auth.key", MANAGEMENT_API_KEY);
                 put("web.http.control.port", String.valueOf(getFreePort()));
                 put("web.http.control.path", "/control");
+                put("web.http.version.port", String.valueOf(getFreePort()));
+                put("web.http.version.path", "/version");
                 put("web.http.catalog.port", String.valueOf(federatedCatalog.get().getPort()));
                 put("web.http.catalog.path", federatedCatalog.get().getPath());
                 put("web.http.catalog.auth.type", "tokenbased");
@@ -116,7 +118,6 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 put("edc.iam.sts.oauth.token.url", "http://sts.example.com/token");
                 put("edc.iam.sts.oauth.client.id", "test-clientid");
                 put("edc.iam.sts.oauth.client.secret.alias", "test-clientid-alias");
-                put("tx.edc.iam.sts.dim.url", "http://sts.example.com");
                 put("tx.edc.iam.iatp.bdrs.server.url", "http://sts.example.com");
                 put("edc.dataplane.api.public.baseurl", "%s/v2/data".formatted(dataPlanePublic.get()));
                 put("edc.catalog.cache.execution.delay.seconds", "2");
@@ -177,7 +178,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 .contentType(JSON)
                 .body(body)
                 .when()
-                .post("/v3.1alpha/retireagreements")
+                .post("/v3/contractagreements/retirements")
                 .then();
     }
 

@@ -39,10 +39,8 @@ import org.eclipse.edc.iam.verifiablecredentials.spi.model.Issuer;
 import org.eclipse.edc.iam.verifiablecredentials.spi.model.VerifiableCredential;
 import org.eclipse.edc.iam.verifiablecredentials.spi.model.VerifiableCredentialContainer;
 import org.eclipse.edc.identityhub.spi.verifiablecredentials.model.VerifiableCredentialResource;
-import org.eclipse.edc.security.signature.jws2020.Jws2020SignatureSuite;
 import org.eclipse.tractusx.edc.tests.IdentityParticipant;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -60,19 +58,18 @@ import static org.eclipse.tractusx.edc.tests.transfer.iatp.harness.IatpHelperFun
  */
 public class DataspaceIssuer extends IdentityParticipant {
 
-    public static final String DATASPACE_ISSUER = "did:example:dataspace_issuer";
-    public static final URI ASSERTION_METHOD = URI.create("https://w3id.org/security#assertionMethod");
     private static final ObjectMapper MAPPER = createObjectMapper();
     private static final String KEY_ID = "#key1";
-    private final Jws2020SignatureSuite jws2020suite = new Jws2020SignatureSuite(MAPPER);
     private final DidDocument didDocument;
+    private final String did;
 
-    public DataspaceIssuer() {
+    public DataspaceIssuer(String did) {
+        this.did = did;
         didDocument = generateDidDocument();
     }
 
     public String didUrl() {
-        return DATASPACE_ISSUER;
+        return did;
     }
 
     public DidDocument didDocument() {
@@ -80,7 +77,7 @@ public class DataspaceIssuer extends IdentityParticipant {
     }
 
     public String verificationId() {
-        return DATASPACE_ISSUER + "#" + getKeyId();
+        return did + "#" + getKeyId();
     }
 
     public VerifiableCredentialResource issueCredential(String did, String bpn, String type, Supplier<CredentialSubject> credentialSubjectSupplier, JsonObject subjectSupplier) {
@@ -176,8 +173,6 @@ public class DataspaceIssuer extends IdentityParticipant {
     }
 
     private DidDocument generateDidDocument() {
-
-
         var jwk = getKeyPairAsJwk();
         var verificationMethod = VerificationMethod.Builder.newInstance()
                 .id(verificationId())

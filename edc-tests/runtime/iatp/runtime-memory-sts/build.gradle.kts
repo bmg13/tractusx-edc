@@ -25,10 +25,7 @@ plugins {
 dependencies {
 
     // use basic (all in-mem) control plane
-    implementation(project(":edc-controlplane:edc-controlplane-base")) {
-        exclude(module = "tx-dcp-sts-dim")
-        exclude("org.eclipse.edc", "identity-trust-issuers-configuration")
-    }
+    implementation(project(":edc-controlplane:edc-controlplane-base"))
     implementation(project(":core:json-ld-core"))
 
     implementation(libs.edc.iam.mock)
@@ -38,8 +35,6 @@ dependencies {
     implementation(libs.bundles.edc.sts)
 
     implementation(libs.edc.lib.token)
-    implementation(libs.edc.core.connector)
-    implementation(libs.edc.core.token)
 
     implementation(libs.edc.ih.common.core)
     implementation(libs.edc.ih.core)
