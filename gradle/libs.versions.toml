@@ -3,6 +3,7 @@ format.version = "1.1"
 
 [versions]
 edc = "0.13.0"
+tech-aws = "0.14.0-20250529-SNAPSHOT"
 allure = "2.29.1"
 awaitility = "4.3.0"
 aws = "2.31.54"
@@ -109,10 +110,10 @@ edc-dpf-azblob = { module = "org.eclipse.edc.azure:data-plane-azure-storage", ve
 edc-azure-blob-provision = { module = "org.eclipse.edc.azure:provision-blob", version.ref = "edc" }
 
 # EDC aws s3 stuff
-edc-aws-s3-core = { module = "org.eclipse.edc.aws:aws-s3-core", version.ref = "edc" }
-edc-dpf-awss3 = { module = "org.eclipse.edc.aws:data-plane-aws-s3", version.ref = "edc" }
-edc-aws-validator-data-address-s3 = { module = "org.eclipse.edc.aws:validator-data-address-s3", version.ref = "edc" }
-edc-aws-provision-s3 = { module = "org.eclipse.edc.aws:provision-aws-s3", version.ref = "edc" }
+edc-aws-s3-core = { module = "org.eclipse.edc.aws:aws-s3-core", version.ref = "tech-aws" }
+edc-dpf-awss3 = { module = "org.eclipse.edc.aws:data-plane-aws-s3", version.ref = "tech-aws" }
+edc-aws-validator-data-address-s3 = { module = "org.eclipse.edc.aws:validator-data-address-s3", version.ref = "tech-aws" }
+edc-aws-provision-s3 = { module = "org.eclipse.edc.aws:provision-aws-s3", version.ref = "tech-aws" }
 
 # DCP Modules
 edc-spi-identitytrust = { module = "org.eclipse.edc:identity-trust-spi", version.ref = "edc" }
