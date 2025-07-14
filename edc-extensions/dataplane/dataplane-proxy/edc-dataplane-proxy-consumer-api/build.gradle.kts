@@ -30,7 +30,7 @@ dependencies {
     implementation(libs.jakarta.rsApi)
 
     implementation(libs.edc.spi.http)
-    implementation(libs.edc.spi.dataplane.http)
+    implementation(project(":edc-extensions:dataplane:dataplane-http-spi"))
     implementation(libs.edc.lib.util)
     implementation(libs.edc.dpf.util)
     implementation(libs.edc.ext.http)

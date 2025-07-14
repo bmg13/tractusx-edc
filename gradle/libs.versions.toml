@@ -81,6 +81,7 @@ edc-transaction-local = { module = "org.eclipse.edc:transaction-local", version.
 edc-ext-http = { module = "org.eclipse.edc:http", version.ref = "edc" }
 edc-ext-jsonld = { module = "org.eclipse.edc:json-ld", version.ref = "edc" }
 edc-validator-data-address-http-data = { module = "org.eclipse.edc:validator-data-address-http-data", version.ref = "edc" }
+edc-spi-data-address-http-data = { module = "org.eclipse.edc:data-address-http-data-spi", version.ref = "edc" }
 edc-runtime-metamodel = { module = "org.eclipse.edc:runtime-metamodel", version.ref = "edc" }
 
 # EDC lib dependencies
@@ -152,10 +153,10 @@ edc-spi-dataplane-selector = { module = "org.eclipse.edc:data-plane-selector-spi
 
 # DPF modules
 edc-spi-dataplane-dataplane = { module = "org.eclipse.edc:data-plane-spi", version.ref = "edc" }
-edc-spi-dataplane-http = { module = "org.eclipse.edc:data-plane-http-spi", version.ref = "edc" }
+#edc-spi-dataplane-http = { module = "org.eclipse.edc:data-plane-http-spi", version.ref = "edc" }
 edc-dpf-core = { module = "org.eclipse.edc:data-plane-core", version.ref = "edc" }
 edc-dpf-util = { module = "org.eclipse.edc:data-plane-util", version.ref = "edc" }
-edc-dpf-http = { module = "org.eclipse.edc:data-plane-http", version.ref = "edc" }
+#edc-dpf-http = { module = "org.eclipse.edc:data-plane-http", version.ref = "edc" }
 
 # micrometer and other infra stuff
 edc-micrometer-core = { module = "org.eclipse.edc:micrometer-core", version.ref = "edc" }

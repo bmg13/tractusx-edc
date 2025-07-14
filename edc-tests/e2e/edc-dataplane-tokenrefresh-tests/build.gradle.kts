@@ -27,7 +27,7 @@ dependencies {
 
     testImplementation(libs.edc.junit)
     testImplementation(testFixtures(libs.edc.api.management.test.fixtures))
-    testImplementation(libs.edc.dpf.http)
+    implementation(project(":edc-extensions:dataplane:dataplane-http"))
     testImplementation(libs.edc.spi.identity.did)
 
     testImplementation(libs.bouncyCastle.bcpkixJdk18on)

@@ -27,7 +27,7 @@ dependencies {
     testImplementation(testFixtures(project(":edc-tests:e2e-fixtures")))
 
     testImplementation(libs.edc.junit)
-    testImplementation(libs.edc.dpf.http)
+    implementation(project(":edc-extensions:dataplane:dataplane-http-spi"))
     testImplementation(libs.edc.auth.tokenbased)
     testImplementation(libs.edc.spi.dataplane.selector)
     testImplementation(libs.edc.ext.jsonld)
