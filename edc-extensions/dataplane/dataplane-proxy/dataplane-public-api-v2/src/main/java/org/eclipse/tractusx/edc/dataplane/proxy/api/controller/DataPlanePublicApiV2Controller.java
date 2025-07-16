@@ -168,6 +168,7 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
         AsyncStreamingDataSink.AsyncResponseContext asyncResponseContext = callback -> {
             StreamingOutput output = t -> callback.outputStreamConsumer().accept(t);
             var resp = Response.ok(output).type(callback.mediaType()).build();
+            //Response.status(200).entity(output).type(callback.mediaType()).build(); // TODO: maybe make the 200 configurable if possible?
             return response.resume(resp);
         };
 
@@ -177,6 +178,12 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
                 .whenComplete((result, throwable) -> {
                     if (throwable == null) {
                         if (result.failed()) {
+                            if (result instanceof ProxyStreamResult && ((ProxyStreamResult<Object>) result).isProxyResponse()) {
+                                var proxyStreamFailure = (ProxyStreamFailure) result.getFailure();
+                                var statusCode = Response.Status.fromStatusCode(Integer.parseInt(proxyStreamFailure.getStatusCode()));
+                                response.resume(error(statusCode, result.getFailureMessages(), proxyStreamFailure.getMediaType(), proxyStreamFailure.getContent()));
+                            }
+
                             response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
                         }
                     } else {
