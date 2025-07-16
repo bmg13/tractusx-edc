@@ -164,11 +164,13 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
     }
 
     private void processRequest(DataFlowStartMessage dataFlowStartMessage, AsyncResponse response) {
+        var statusHolder = new StatusHolder();
 
         AsyncStreamingDataSink.AsyncResponseContext asyncResponseContext = callback -> {
             StreamingOutput output = t -> callback.outputStreamConsumer().accept(t);
-            var resp = Response.ok(output).type(callback.mediaType()).build();
-            //Response.status(200).entity(output).type(callback.mediaType()).build(); // TODO: maybe make the 200 configurable if possible?
+            var statusCode = statusHolder.statusCode == null ? Response.Status.OK : statusHolder.statusCode;
+            var mediaType = statusHolder.mediaType == null ? callback.mediaType() : statusHolder.mediaType;
+            var resp = Response.status(statusCode).entity(output).type(mediaType).build();
             return response.resume(resp);
         };
 
@@ -180,17 +182,31 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
                         if (result.failed()) {
                             if (result instanceof ProxyStreamResult && ((ProxyStreamResult<Object>) result).isProxyResponse()) {
                                 var proxyStreamFailure = (ProxyStreamFailure) result.getFailure();
-                                var statusCode = Response.Status.fromStatusCode(Integer.parseInt(proxyStreamFailure.getStatusCode()));
+                                var statusCode = retrieveStatusCode(proxyStreamFailure.getStatusCode());
                                 response.resume(error(statusCode, result.getFailureMessages(), proxyStreamFailure.getMediaType(), proxyStreamFailure.getContent()));
+                            } else {
+                                response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
                             }
-
-                            response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
+                        } else {
+                            if (result instanceof ProxyStreamResult proxyResult && proxyResult.isProxyResponse()) {
+                                statusHolder.statusCode = retrieveStatusCode(proxyResult.getStatusCode());
+                                statusHolder.mediaType = proxyResult.getMediaType();
+                            }
                         }
                     } else {
                         var error = "Unhandled exception occurred during data transfer: " + throwable.getMessage();
                         response.resume(error(INTERNAL_SERVER_ERROR, List.of(error)));
                     }
                 });
+    }
+
+    private static Response.Status retrieveStatusCode(String statusCode) {
+        return Response.Status.fromStatusCode(Integer.parseInt(statusCode));
+    }
+
+    static class StatusHolder {
+        Response.Status statusCode;
+        String mediaType;
     }
 
 }
