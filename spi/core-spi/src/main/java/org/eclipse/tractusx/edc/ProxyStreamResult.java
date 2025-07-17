@@ -30,44 +30,12 @@ import org.eclipse.edc.spi.result.Result;
  */
 public class ProxyStreamResult<T> extends StreamResult<T> {
 
-    private final boolean isProxyResponse;
-    private final String mediaType;
-    private final String statusCode;
 
-    // TODO: maybe builder
-    private ProxyStreamResult(T content, String mediaType, String statusCode, StreamFailure failure, boolean isProxyResponse) {
+    private ProxyStreamResult(T content, StreamFailure failure) {
         super(content, failure);
-        this.mediaType = mediaType;
-        this.statusCode = statusCode;
-        this.isProxyResponse = isProxyResponse;
     }
 
-    private ProxyStreamResult(T content, String mediaType, String statusCode, boolean isProxyResponse) {
-        super(content, null);
-        this.mediaType = mediaType;
-        this.statusCode = statusCode;
-        this.isProxyResponse = isProxyResponse;
-    }
-
-    public static <T> StreamResult<T> success(
-            T content, String mediaType, String statusCode, boolean isProxyResponse) {
-        return new ProxyStreamResult<>(content, mediaType, statusCode, isProxyResponse);
-    }
-
-    public static <T> StreamResult<T> failure(
-            T content, String mediaType, String statusCode, StreamFailure failure, boolean isProxyResponse) {
-        return new ProxyStreamResult<>(content, mediaType, statusCode, failure, isProxyResponse);
-    }
-
-    public boolean isProxyResponse() {
-        return isProxyResponse;
-    }
-
-    public String getMediaType() {
-        return mediaType;
-    }
-
-    public String getStatusCode() {
-        return statusCode;
+    public static <T> StreamResult<T> failure(T content, StreamFailure failure) {
+        return new ProxyStreamResult<>(content, failure);
     }
 }

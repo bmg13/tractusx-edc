@@ -34,22 +34,18 @@ import org.eclipse.edc.spi.monitor.Monitor;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static org.eclipse.edc.connector.dataplane.http.spi.HttpDataAddress.OCTET_STREAM;
-import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.error;
 import static org.eclipse.tractusx.edc.ProxyStreamResult.failure;
 import static org.eclipse.tractusx.edc.ProxyStreamResult.success;
 
 public class HttpDataSource implements DataSource {
-    private static final int FORBIDDEN = 401;
-    private static final int NOT_AUTHORIZED = 403;
-    private static final int NOT_FOUND = 404;
 
     private String name;
     private boolean proxyOriginalResponse;
@@ -90,31 +86,7 @@ public class HttpDataSource implements DataSource {
         responseBodyStream.set(new ResponseBodyStream(body, stream));
         var mediaType = Optional.ofNullable(body.contentType()).map(MediaType::toString).orElse(OCTET_STREAM);
         var statusCode = (String.valueOf(response.code()));
-        return success(
-                Stream.of(new HttpPart(name, stream, mediaType)),
-                mediaType,
-                statusCode,
-                proxyOriginalResponse);
-    }
-
-
-    // TODO: this should be handled by the controller.
-    private StreamResult<Stream<Part>> handleFailureResponse2(Response response) {
-        try {
-            if (NOT_AUTHORIZED == response.code() || FORBIDDEN == response.code()) {
-                return StreamResult.notAuthorized();
-            } else if (NOT_FOUND == response.code()) {
-                return StreamResult.notFound();
-            } else {
-                return error(format("Received code transferring HTTP data: %s - %s - %s.", response.code(), response.message(), response.body()));
-            }
-        } finally {
-            try {
-                response.close();
-            } catch (Exception e) {
-                monitor.severe("Error closing failed response", e);
-            }
-        }
+        return success(Stream.of(new HttpPart(name, stream, mediaType, statusCode, proxyOriginalResponse)));
     }
 
     private StreamResult<Stream<Part>> handleFailureResponse(Response response, String statusCode) {
@@ -125,16 +97,10 @@ public class HttpDataSource implements DataSource {
             if (body != null) {
                 mediaType = Optional.ofNullable(body.contentType()).map(MediaType::toString).get(); // TODO: get()???
                 var stream = body.byteStream();
-                content = Stream.of(new HttpPart(name, stream, mediaType));
+                content = Stream.of(new HttpPart(name, stream, mediaType, statusCode, proxyOriginalResponse));
             }
 
-            return failure(
-                    content,
-                    mediaType,
-                    statusCode,
-                    new StreamFailure(List.of(format("Received code transferring HTTP data: %s - %s.",
-                            response.code(), response.message())), null),
-                    proxyOriginalResponse);
+            return failure(content, new StreamFailure(emptyList(), null));
         } finally {
             try {
                 response.close();

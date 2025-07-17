@@ -34,6 +34,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import org.eclipse.edc.connector.dataplane.http.pipeline.HttpPart;
 import org.eclipse.edc.connector.dataplane.spi.iam.DataPlaneAuthorizationService;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.connector.dataplane.spi.response.TransferErrorResponse;
@@ -179,17 +180,17 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
         pipelineService.transfer(dataFlowStartMessage, sink)
                 .whenComplete((result, throwable) -> {
                     if (throwable == null) {
-                        if (result.failed()) {
-                            if (result instanceof ProxyStreamResult proxyResult && proxyResult.isProxyResponse()) {
-                                var statusCode = retrieveStatusCode(proxyResult.getStatusCode());
-                                response.resume(error(statusCode, result.getFailureMessages(), proxyResult.getMediaType(), proxyResult.getContent()));
+                        if (result.failed() && result.getContent() instanceof HttpPart part) {
+                            var statusCode = retrieveStatusCode(part.statusCode());
+                            if (part.isProxyResponse()) {
+                                response.resume(error(statusCode, result.getFailureMessages(), part.mediaType(), part));
                             } else {
                                 response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
                             }
                         } else {
-                            if (result instanceof ProxyStreamResult proxyResult && proxyResult.isProxyResponse()) {
-                                statusHolder.statusCode = retrieveStatusCode(proxyResult.getStatusCode());
-                                statusHolder.mediaType = proxyResult.getMediaType();
+                            if (result.getContent() instanceof HttpPart part && part.isProxyResponse()) {
+                                statusHolder.statusCode = retrieveStatusCode(part.statusCode());
+                                statusHolder.mediaType = part.mediaType();
                             }
                         }
                     } else {
