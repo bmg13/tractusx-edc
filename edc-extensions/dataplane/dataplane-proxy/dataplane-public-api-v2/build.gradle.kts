@@ -28,6 +28,7 @@ dependencies {
     api(libs.edc.spi.http)
     api(libs.edc.spi.web)
     api(libs.edc.spi.dataplane.dataplane)
+    implementation(project(":spi:core-spi"))
     implementation(libs.edc.lib.util)
 
     implementation(libs.edc.dpf.util)

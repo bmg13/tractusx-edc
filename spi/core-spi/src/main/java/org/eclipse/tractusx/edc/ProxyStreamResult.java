@@ -21,17 +21,7 @@ package org.eclipse.tractusx.edc;
 
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
-import org.eclipse.edc.spi.result.AbstractResult;
 import org.eclipse.edc.spi.result.Result;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
-
-import static java.util.Collections.emptyList;
-import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.GENERAL_ERROR;
-import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.NOT_AUTHORIZED;
-import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.NOT_FOUND;
 
 /**
  * Specialized {@link Result} class to indicate the success or failure opening a source stream.
@@ -40,10 +30,44 @@ import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Rea
  */
 public class ProxyStreamResult<T> extends StreamResult<T> {
 
-    private boolean isProxyResponse;
+    private final boolean isProxyResponse;
+    private final String mediaType;
+    private final String statusCode;
 
-    public ProxyStreamResult(T content, StreamFailure failure, boolean isProxyResponse) {
+    // TODO: maybe builder
+    private ProxyStreamResult(T content, String mediaType, String statusCode, StreamFailure failure, boolean isProxyResponse) {
         super(content, failure);
+        this.mediaType = mediaType;
+        this.statusCode = statusCode;
         this.isProxyResponse = isProxyResponse;
+    }
+
+    private ProxyStreamResult(T content, String mediaType, String statusCode, boolean isProxyResponse) {
+        super(content, null);
+        this.mediaType = mediaType;
+        this.statusCode = statusCode;
+        this.isProxyResponse = isProxyResponse;
+    }
+
+    public static <T> StreamResult<T> success(
+            T content, String mediaType, String statusCode, boolean isProxyResponse) {
+        return new ProxyStreamResult<>(content, mediaType, statusCode, isProxyResponse);
+    }
+
+    public static <T> StreamResult<T> failure(
+            T content, String mediaType, String statusCode, StreamFailure failure, boolean isProxyResponse) {
+        return new ProxyStreamResult<>(content, mediaType, statusCode, failure, isProxyResponse);
+    }
+
+    public boolean isProxyResponse() {
+        return isProxyResponse;
+    }
+
+    public String getMediaType() {
+        return mediaType;
+    }
+
+    public String getStatusCode() {
+        return statusCode;
     }
 }

@@ -59,7 +59,7 @@ public class HttpDataAddress extends DataAddress {
     private static final String PROXY_QUERY_PARAMS = "proxyQueryParams";
     @Deprecated(since = "0.12.0")
     private static final String PROXY_METHOD = "proxyMethod";
-    private static final String PROXY_STATUS_CODES = "proxyOriginalResponse";
+    private static final String PROXY_ORIGINAL_RESPONSE = "proxyOriginalResponse";
     public static final String ADDITIONAL_HEADER = "header:";
     public static final String CONTENT_TYPE = "contentType";
     public static final String OCTET_STREAM = "application/octet-stream";
@@ -93,7 +93,7 @@ public class HttpDataAddress extends DataAddress {
 
     @JsonIgnore
     public String getproxyOriginalResponse() {
-        return getStringProperty(PROXY_STATUS_CODES, "false");
+        return getStringProperty(PROXY_ORIGINAL_RESPONSE, "false");
     }
 
     @JsonIgnore
@@ -237,7 +237,7 @@ public class HttpDataAddress extends DataAddress {
         }
 
         public Builder proxyOriginalResponse(String proxyMethod) {
-            this.property(PROXY_STATUS_CODES, proxyMethod);
+            this.property(PROXY_ORIGINAL_RESPONSE, proxyMethod);
             return this;
         }
 
