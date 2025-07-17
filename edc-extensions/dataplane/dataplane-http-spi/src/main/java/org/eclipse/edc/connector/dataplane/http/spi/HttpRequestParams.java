@@ -35,7 +35,6 @@ public class HttpRequestParams {
     private String baseUrl;
     private String path;
     private String queryParams;
-    private boolean proxyOriginalResponse;
     private String contentType = DEFAULT_CONTENT_TYPE;
     private String body;
     private boolean nonChunkedTransfer = DEFAULT_NON_CHUNKED_TRANSFER;
@@ -55,10 +54,6 @@ public class HttpRequestParams {
 
     public String getQueryParams() {
         return queryParams;
-    }
-
-    public boolean isProxyOriginalResponseEnabled() {
-        return proxyOriginalResponse;
     }
 
     public String getContentType() {
@@ -95,11 +90,6 @@ public class HttpRequestParams {
 
         public HttpRequestParams.Builder queryParams(String queryParams) {
             params.queryParams = queryParams;
-            return this;
-        }
-
-        public HttpRequestParams.Builder proxyOriginalResponse(boolean proxyOriginalResponse) {
-            params.proxyOriginalResponse = proxyOriginalResponse;
             return this;
         }
 

@@ -32,6 +32,7 @@ import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.jetbrains.annotations.NotNull;
 
 import static org.eclipse.edc.dataaddress.httpdata.spi.HttpDataAddressSchema.HTTP_DATA_TYPE;
+import static org.eclipse.edc.spi.types.domain.transfer.FlowType.PULL;
 
 /**
  * Instantiates {@link HttpDataSource}s for requests whose source data type is {@link HttpDataAddressSchema#HTTP_DATA_TYPE}.
@@ -75,8 +76,13 @@ public class HttpDataSourceFactory implements DataSourceFactory {
                 .monitor(monitor)
                 .requestId(request.getId())
                 .name(dataAddress.getName())
+                .proxyOriginalResponse(extractProxyStatusCode(dataAddress, request))
                 .params(requestParamsProvider.provideSourceParams(request))
                 .requestFactory(requestFactory)
                 .build();
+    }
+
+    private boolean extractProxyStatusCode(HttpDataAddress address, DataFlowStartMessage request) {
+        return PULL.equals(request.getFlowType()) && Boolean.parseBoolean(address.getproxyOriginalResponse());
     }
 }

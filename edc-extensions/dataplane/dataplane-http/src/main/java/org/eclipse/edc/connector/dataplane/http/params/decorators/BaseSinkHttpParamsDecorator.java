@@ -35,7 +35,6 @@ public class BaseSinkHttpParamsDecorator implements HttpParamsDecorator {
         params.method(method);
         params.path(address.getPath());
         params.queryParams(null);
-        params.proxyOriginalResponse(Boolean.parseBoolean(address.getproxyOriginalResponse()));
         Optional.ofNullable(address.getContentType())
                 .ifPresent(contentType -> {
                     params.contentType(contentType);

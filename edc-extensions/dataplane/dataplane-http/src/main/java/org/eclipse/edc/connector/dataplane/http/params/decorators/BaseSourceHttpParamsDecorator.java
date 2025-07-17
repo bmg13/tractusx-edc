@@ -49,7 +49,6 @@ public class BaseSourceHttpParamsDecorator implements HttpParamsDecorator {
         params.method(extractMethod(address, request));
         params.path(extractPath(address, request));
         params.queryParams(extractQueryParams(address, request));
-        params.proxyOriginalResponse(extractProxyStatusCode(address, request));
         Optional.ofNullable(extractContentType(address, request))
                 .ifPresent(ct -> {
                     params.contentType(ct);
@@ -93,11 +92,4 @@ public class BaseSourceHttpParamsDecorator implements HttpParamsDecorator {
         return Boolean.parseBoolean(address.getProxyQueryParams()) ? request.getProperties().get(QUERY_PARAMS) : null;
     }
 
-    private boolean extractProxyStatusCode(HttpDataAddress address, DataFlowStartMessage request) {
-        if (PULL.equals(request.getFlowType())) {
-            return Boolean.parseBoolean(address.getproxyOriginalResponse());
-        }
-
-        return false;
-    }
 }

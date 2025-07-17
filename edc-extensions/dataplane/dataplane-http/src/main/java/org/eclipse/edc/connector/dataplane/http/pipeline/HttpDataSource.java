@@ -52,6 +52,7 @@ public class HttpDataSource implements DataSource {
     private static final int NOT_FOUND = 404;
 
     private String name;
+    private boolean proxyOriginalResponse;
     private HttpRequestParams params;
     private String requestId;
     private Monitor monitor;
@@ -93,7 +94,7 @@ public class HttpDataSource implements DataSource {
                 Stream.of(new HttpPart(name, stream, mediaType)),
                 mediaType,
                 statusCode,
-                params.isProxyOriginalResponseEnabled());
+                proxyOriginalResponse);
     }
 
 
@@ -133,7 +134,7 @@ public class HttpDataSource implements DataSource {
                     statusCode,
                     new StreamFailure(List.of(format("Received code transferring HTTP data: %s - %s.",
                             response.code(), response.message())), null),
-                    params.isProxyOriginalResponseEnabled());
+                    proxyOriginalResponse);
         } finally {
             try {
                 response.close();
@@ -178,6 +179,11 @@ public class HttpDataSource implements DataSource {
 
         public Builder name(String name) {
             dataSource.name = name;
+            return this;
+        }
+
+        public Builder proxyOriginalResponse(boolean proxyOriginalResponse) {
+            dataSource.proxyOriginalResponse = proxyOriginalResponse;
             return this;
         }
 

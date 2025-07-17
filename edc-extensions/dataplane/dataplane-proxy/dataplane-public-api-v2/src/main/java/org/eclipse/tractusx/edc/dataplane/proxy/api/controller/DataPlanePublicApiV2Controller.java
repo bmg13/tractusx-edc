@@ -180,10 +180,9 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
                 .whenComplete((result, throwable) -> {
                     if (throwable == null) {
                         if (result.failed()) {
-                            if (result instanceof ProxyStreamResult && ((ProxyStreamResult<Object>) result).isProxyResponse()) {
-                                var proxyStreamFailure = (ProxyStreamFailure) result.getFailure();
-                                var statusCode = retrieveStatusCode(proxyStreamFailure.getStatusCode());
-                                response.resume(error(statusCode, result.getFailureMessages(), proxyStreamFailure.getMediaType(), proxyStreamFailure.getContent()));
+                            if (result instanceof ProxyStreamResult proxyResult && proxyResult.isProxyResponse()) {
+                                var statusCode = retrieveStatusCode(proxyResult.getStatusCode());
+                                response.resume(error(statusCode, result.getFailureMessages(), proxyResult.getMediaType(), proxyResult.getContent()));
                             } else {
                                 response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
                             }
