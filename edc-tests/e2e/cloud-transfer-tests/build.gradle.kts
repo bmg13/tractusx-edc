@@ -28,6 +28,7 @@ dependencies {
 
     testImplementation(libs.edc.junit)
     implementation(project(":edc-extensions:dataplane:dataplane-http-spi"))
+    implementation(project(":edc-extensions:dataplane:dataplane-util"))
     testImplementation(libs.edc.auth.tokenbased)
     testImplementation(libs.edc.spi.dataplane.selector)
     testImplementation(libs.edc.ext.jsonld)

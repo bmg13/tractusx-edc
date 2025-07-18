@@ -34,7 +34,6 @@ import java.util.Set;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toMap;
 import static org.eclipse.edc.dataaddress.httpdata.spi.HttpDataAddressSchema.BASE_URL;
-import static org.eclipse.edc.dataaddress.httpdata.spi.HttpDataAddressSchema.HTTP_DATA_TYPE;
 
 /**
  * This is a wrapper class for the {@link DataAddress} object, which has typed accessors for properties specific to
@@ -64,7 +63,7 @@ public class HttpDataAddress extends DataAddress {
 
     private HttpDataAddress() {
         super();
-        this.setType(HTTP_DATA_TYPE);
+        this.setType("ProxyHttpData");
     }
 
     @JsonIgnore
@@ -255,7 +254,7 @@ public class HttpDataAddress extends DataAddress {
 
         @Override
         public HttpDataAddress build() {
-            this.type(HTTP_DATA_TYPE);
+            this.type("ProxyHttpData");
             return address;
         }
     }

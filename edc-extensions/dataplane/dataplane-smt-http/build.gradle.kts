@@ -21,34 +21,26 @@
 
 plugins {
     `java-library`
-    id(libs.plugins.swagger.get().pluginId)
+    //`java-test-fixtures`
 }
 
 dependencies {
     api(libs.edc.spi.http)
-    api(libs.edc.spi.web)
     api(libs.edc.spi.dataplane.dataplane)
+    //api(project(":edc-extensions:dataplane:dataplane-http-spi"))
+    //implementation(libs.edc.lib.util )
     implementation(project(":spi:core-spi"))
-    //implementation(project(":edc-extensions:dataplane:dataplane-http"))
     implementation(libs.edc.dpf.http)
-    implementation(project(":edc-extensions:dataplane:dataplane-smt-http"))
-    implementation(project(":edc-extensions:dataplane:dataplane-util"))
-    implementation(libs.edc.lib.util)
 
-    implementation(libs.jakarta.rsApi)
-
-    testImplementation(libs.edc.ext.http)
     testImplementation(libs.edc.junit)
-    testImplementation(libs.edc.core.jersey)
-
+    testImplementation(libs.edc.core.runtime)
+    testImplementation(libs.edc.dpf.core)
+    testImplementation(libs.edc.ext.jsonld)
     testImplementation(libs.restAssured)
     testImplementation(libs.netty.mockserver)
-    testImplementation(testFixtures(libs.edc.core.jersey))
-}
-edcBuild {
-    swagger {
-        apiGroup.set("public-api")
-    }
+
+    testImplementation(testFixtures(libs.edc.lib.http))
+    testImplementation(testFixtures(libs.edc.spi.dataplane.dataplane))
 }
 
 

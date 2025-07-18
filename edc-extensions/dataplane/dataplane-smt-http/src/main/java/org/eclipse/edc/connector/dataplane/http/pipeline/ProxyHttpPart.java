@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2023 Contributors to the Eclipse Foundation
+ * Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -17,18 +17,26 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-plugins {
-    `maven-publish`
-    `java-library`
-}
+package org.eclipse.edc.connector.dataplane.http.pipeline;
 
-dependencies {
-    implementation(libs.edc.spi.controlplane)
-    implementation(libs.edc.spi.core)
-    implementation(libs.edc.spi.transfer)
-    //implementation(project(":edc-extensions:dataplane:dataplane-http"))
-    implementation(libs.edc.dpf.http)
-    implementation(project(":edc-extensions:dataplane:dataplane-smt-http"))
+import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 
-    testImplementation(libs.edc.junit)
+import java.io.InputStream;
+
+public record ProxyHttpPart(String name, InputStream content, String mediaType,
+                            String statusCode, boolean proxyOriginalResponse) implements DataSource.Part {
+    @Override
+    public long size() {
+        return SIZE_UNKNOWN;
+    }
+
+    @Override
+    public InputStream openStream() {
+        return content;
+    }
+
+    @Override
+    public String mediaType() {
+        return mediaType;
+    }
 }
