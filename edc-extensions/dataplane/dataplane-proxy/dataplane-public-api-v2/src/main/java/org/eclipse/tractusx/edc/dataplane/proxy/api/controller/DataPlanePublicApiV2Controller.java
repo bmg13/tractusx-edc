@@ -34,17 +34,19 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
-import org.eclipse.edc.connector.dataplane.http.pipeline.HttpPart;
+import org.eclipse.edc.connector.dataplane.http.pipeline.ProxyHttpPart;
 import org.eclipse.edc.connector.dataplane.spi.iam.DataPlaneAuthorizationService;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.connector.dataplane.spi.response.TransferErrorResponse;
 import org.eclipse.edc.connector.dataplane.util.sink.AsyncStreamingDataSink;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static jakarta.ws.rs.core.MediaType.WILDCARD;
@@ -73,6 +75,28 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
 
     private static Response error(Response.Status status, List<String> errors) {
         return status(status).type(APPLICATION_JSON).entity(new TransferErrorResponse(errors)).build();
+    }
+
+    private static Response error(Response.Status status, List<String> errors, String mediaType) {
+        return status(status).type(mediaType).entity(new TransferErrorResponse(errors)).build();
+    }
+
+    private static Response error(Response.Status status, List<String> errors, String mediaType, InputStream content) {
+        return status(status)
+                .type(APPLICATION_JSON)
+                //.entity(content)
+                //.entity(new ProxyTransferErrorResponse(errors, content))
+                .entity(new TransferErrorResponse(errors))
+                .build();
+    }
+
+    private static Response error(Response.Status status, List<String> errors, String mediaType, Object content) {
+        return status(status)
+                .type(APPLICATION_JSON)
+                //.entity(content)
+                .entity(new ProxyTransferErrorResponse(errors, content))
+                //.entity(new TransferErrorResponse(errors))
+                .build();
     }
 
     @GET
@@ -165,13 +189,13 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
     }
 
     private void processRequest(DataFlowStartMessage dataFlowStartMessage, AsyncResponse response) {
-        var statusHolder = new StatusHolder();
-
         AsyncStreamingDataSink.AsyncResponseContext asyncResponseContext = callback -> {
             StreamingOutput output = t -> callback.outputStreamConsumer().accept(t);
-            var statusCode = statusHolder.statusCode == null ? Response.Status.OK : statusHolder.statusCode;
-            var mediaType = statusHolder.mediaType == null ? callback.mediaType() : statusHolder.mediaType;
-            var resp = Response.status(statusCode).entity(output).type(mediaType).build();
+            var resp = Response
+                    .status(retrieveStatusCode(callback.statusCode()))
+                    .entity(output)
+                    .type("application/json") // todo
+                    .build();
             return response.resume(resp);
         };
 
@@ -180,17 +204,30 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
         pipelineService.transfer(dataFlowStartMessage, sink)
                 .whenComplete((result, throwable) -> {
                     if (throwable == null) {
-                        if (result.failed() && result.getContent() instanceof HttpPart part) {
-                            var statusCode = retrieveStatusCode(part.statusCode());
-                            if (part.isProxyResponse()) {
-                                response.resume(error(statusCode, result.getFailureMessages(), part.mediaType(), part));
+                        if (result.failed()) {
+                            if (result.getContent() != null &&
+                                    result.getContent() instanceof Stream<?> content) {// &&
+                                //content.findFirst().get() instanceof ProxyHttpPart proxyHttpPart) {
+                                var first = content.findFirst().orElse(null);
+                                if (first instanceof ProxyHttpPart proxyHttpPart) {
+                                    var statusCode = retrieveStatusCode(proxyHttpPart.statusCode());
+                                    //response.resume(error(statusCode, result.getFailureMessages()));
+
+                                    var resp = Response
+                                            .status(statusCode)
+                                            .entity(proxyHttpPart.content())
+                                            .type(proxyHttpPart.mediaType())
+                                            .build();
+
+                                    response.resume(error(statusCode, result.getFailureMessages()));
+                                    //response.resume(error(statusCode, result.getFailureMessages(), proxyHttpPart.mediaType(), result.getContent()));
+                                    response.resume(resp);
+                                }
+
+                                response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
+
                             } else {
                                 response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
-                            }
-                        } else {
-                            if (result.getContent() instanceof HttpPart part && part.isProxyResponse()) {
-                                statusHolder.statusCode = retrieveStatusCode(part.statusCode());
-                                statusHolder.mediaType = part.mediaType();
                             }
                         }
                     } else {
@@ -202,11 +239,6 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
 
     private static Response.Status retrieveStatusCode(String statusCode) {
         return Response.Status.fromStatusCode(Integer.parseInt(statusCode));
-    }
-
-    static class StatusHolder {
-        Response.Status statusCode;
-        String mediaType;
     }
 
 }
