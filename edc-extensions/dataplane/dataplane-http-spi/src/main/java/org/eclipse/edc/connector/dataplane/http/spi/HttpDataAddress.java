@@ -63,7 +63,7 @@ public class HttpDataAddress extends DataAddress {
 
     private HttpDataAddress() {
         super();
-        this.setType("ProxyHttpData");
+        this.setType("HttpData");
     }
 
     @JsonIgnore
@@ -254,7 +254,7 @@ public class HttpDataAddress extends DataAddress {
 
         @Override
         public HttpDataAddress build() {
-            this.type("ProxyHttpData");
+            this.type("HttpData");
             return address;
         }
     }
