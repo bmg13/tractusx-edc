@@ -203,31 +203,7 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
                 .whenComplete((result, throwable) -> {
                     if (throwable == null) {
                         if (result.failed()) {
-                            /*
-                            if (result.getContent() != null &&
-                                    result.getContent() instanceof Stream<?> content) {// &&
-                                //content.findFirst().get() instanceof ProxyHttpPart proxyHttpPart) {
-                                var first = content.findFirst().orElse(null);
-                                if (first instanceof ProxyHttpPart proxyHttpPart) {
-                                    var statusCode = retrieveStatusCode(proxyHttpPart.statusCode());
-                                    //response.resume(error(statusCode, result.getFailureMessages()));
-
-                                    var resp = Response
-                                            .status(statusCode)
-                                            .entity(proxyHttpPart.content())
-                                            .type(proxyHttpPart.mediaType())
-                                            .build();
-
-                                    response.resume(error(statusCode, result.getFailureMessages()));
-                                    //response.resume(error(statusCode, result.getFailureMessages(), proxyHttpPart.mediaType(), result.getContent()));
-                                    response.resume(resp);
-                                }
-
-                                response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
-
-                            } else {*/
-                                response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
-                            //}
+                            response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
                         }
                     } else {
                         var error = "Unhandled exception occurred during data transfer: " + throwable.getMessage();
@@ -237,7 +213,7 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
     }
 
     private static Response.Status retrieveStatusCode(String statusCode) {
-        // TODO: add DataSourceToDataSinkTests at the ChunkedTransferRequestBodyTest level
+        // TODO: add DataSourceToDataSinkTests and HttpDataSinkFactoryTest at the ChunkedTransferRequestBodyTest level
         return Response.Status.fromStatusCode(Integer.parseInt(statusCode));
     }
 

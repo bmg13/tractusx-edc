@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ * Copyright (c) 2025 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -70,13 +70,6 @@ public class ProxyHttpDataSource implements DataSource {
         try {
             // NB: Do not close the response as the body input stream needs to be read after this method returns. The response closes the body stream.
             var response = httpClient.execute(request);
-            var statusCode = (String.valueOf(response.code()));
-/*
-            var smt = response.isSuccessful() // TODO: testing here.
-                    ? handleSuccessfulResponse(response)
-                    : handleFailureResponse(response, statusCode);
-
- */
             var smt = handleResponse(response);
             return smt;
         } catch (IOException e) {
@@ -146,14 +139,14 @@ public class ProxyHttpDataSource implements DataSource {
 
     private StreamFailure.Reason resolveReason(String statusCode) {
         StreamFailure.Reason reason = null;
-       // if (!proxyOriginalResponse) {
-            if (NOT_AUTHORIZED.equalsIgnoreCase(statusCode) || FORBIDDEN.equalsIgnoreCase(statusCode)) {
-                reason = StreamFailure.Reason.NOT_AUTHORIZED;
-            } else if (NOT_FOUND.equalsIgnoreCase(statusCode)) {
-                reason = StreamFailure.Reason.NOT_FOUND;
-            } else {
-                reason = StreamFailure.Reason.GENERAL_ERROR;
-            }
+        // if (!proxyOriginalResponse) {
+        if (NOT_AUTHORIZED.equalsIgnoreCase(statusCode) || FORBIDDEN.equalsIgnoreCase(statusCode)) {
+            reason = StreamFailure.Reason.NOT_AUTHORIZED;
+        } else if (NOT_FOUND.equalsIgnoreCase(statusCode)) {
+            reason = StreamFailure.Reason.NOT_FOUND;
+        } else {
+            reason = StreamFailure.Reason.GENERAL_ERROR;
+        }
         //}
 
         return reason;
