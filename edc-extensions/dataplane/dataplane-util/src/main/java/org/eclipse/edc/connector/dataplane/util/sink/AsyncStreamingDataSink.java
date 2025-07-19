@@ -30,18 +30,15 @@ import org.eclipse.tractusx.edc.ProxyStreamResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.error;
-import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.failure;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.success;
 import static org.eclipse.edc.spi.response.ResponseStatus.FATAL_ERROR;
 import static org.eclipse.edc.spi.response.StatusResult.failure;
@@ -70,22 +67,6 @@ public class AsyncStreamingDataSink implements DataSink {
         }
 
         try (var partStream = streamResult.getContent()) {
-
-            if (streamResult.failed() && streamResult.getContent() != null) {
-                Stream content = streamResult.getContent();
-                var proxyHttpPart = (ProxyHttpPart) content.findFirst().get();
-
-                asyncContext.register(new AsyncStreamingDataSink.AsyncResponseCallback(outputStream -> {
-
-                    /*try (InputStream in = proxyHttpPart.content()) {
-                        in.transferTo(outputStream);
-                    } catch (IOException e) {
-                        throw new EdcException(e);
-                    }*/
-                }, proxyHttpPart.mediaType(), proxyHttpPart.statusCode()));
-
-                return completedFuture(ProxyStreamResult.failure(streamResult.getContent(), streamResult.getFailure()));
-            }
 
             return partStream
                     .map(part -> supplyAsync(() -> transferPart(part), executorService))

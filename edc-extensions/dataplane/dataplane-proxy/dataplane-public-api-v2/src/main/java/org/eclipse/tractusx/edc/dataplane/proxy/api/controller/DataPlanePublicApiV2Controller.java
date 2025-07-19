@@ -34,7 +34,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
-import org.eclipse.edc.connector.dataplane.http.pipeline.ProxyHttpPart;
 import org.eclipse.edc.connector.dataplane.spi.iam.DataPlaneAuthorizationService;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.connector.dataplane.spi.response.TransferErrorResponse;
@@ -46,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Stream;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static jakarta.ws.rs.core.MediaType.WILDCARD;
@@ -194,7 +192,7 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
             var resp = Response
                     .status(retrieveStatusCode(callback.statusCode()))
                     .entity(output)
-                    .type("application/json") // todo
+                    .type(callback.mediaType())
                     .build();
             return response.resume(resp);
         };
@@ -205,6 +203,7 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
                 .whenComplete((result, throwable) -> {
                     if (throwable == null) {
                         if (result.failed()) {
+                            /*
                             if (result.getContent() != null &&
                                     result.getContent() instanceof Stream<?> content) {// &&
                                 //content.findFirst().get() instanceof ProxyHttpPart proxyHttpPart) {
@@ -226,9 +225,9 @@ public class DataPlanePublicApiV2Controller implements DataPlanePublicApiV2 {
 
                                 response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
 
-                            } else {
+                            } else {*/
                                 response.resume(error(INTERNAL_SERVER_ERROR, result.getFailureMessages()));
-                            }
+                            //}
                         }
                     } else {
                         var error = "Unhandled exception occurred during data transfer: " + throwable.getMessage();

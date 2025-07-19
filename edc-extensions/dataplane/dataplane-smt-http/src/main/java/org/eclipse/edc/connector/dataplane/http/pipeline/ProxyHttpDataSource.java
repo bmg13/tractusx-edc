@@ -71,16 +71,31 @@ public class ProxyHttpDataSource implements DataSource {
             // NB: Do not close the response as the body input stream needs to be read after this method returns. The response closes the body stream.
             var response = httpClient.execute(request);
             var statusCode = (String.valueOf(response.code()));
-
+/*
             var smt = response.isSuccessful() // TODO: testing here.
                     ? handleSuccessfulResponse(response)
                     : handleFailureResponse(response, statusCode);
 
+ */
+            var smt = handleResponse(response);
             return smt;
         } catch (IOException e) {
             throw new EdcException(e);
         }
 
+    }
+
+    private StreamResult<Stream<Part>> handleResponse(Response response) {
+        var body = response.body();
+        if (body == null) {
+            throw new EdcException(format("Received empty response body transferring HTTP data for request %s: %s", requestId, response.code()));
+        }
+        var stream = body.byteStream();
+        responseBodyStream.set(new ResponseBodyStream(body, stream));
+        var mediaType = Optional.ofNullable(body.contentType()).map(MediaType::toString).orElse(OCTET_STREAM);
+        var statusCode = (String.valueOf(response.code()));
+        Stream<Part> content = Stream.of(new ProxyHttpPart(name, stream, mediaType, statusCode, proxyOriginalResponse));
+        return success(content);
     }
 
     private StreamResult<Stream<Part>> handleSuccessfulResponse(Response response) {
