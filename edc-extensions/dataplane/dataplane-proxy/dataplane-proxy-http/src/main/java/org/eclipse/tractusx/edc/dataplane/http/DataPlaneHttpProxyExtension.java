@@ -19,6 +19,7 @@
 
 package org.eclipse.tractusx.edc.dataplane.http;
 
+import org.eclipse.edc.connector.dataplane.framework.pipeline.PipelineServiceImpl;
 import org.eclipse.edc.connector.dataplane.http.params.HttpRequestFactory;
 import org.eclipse.edc.connector.dataplane.http.params.HttpRequestParamsProviderImpl;
 import org.eclipse.edc.connector.dataplane.http.spi.HttpRequestParamsProvider;
@@ -27,6 +28,7 @@ import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.http.spi.EdcHttpClient;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
+import org.eclipse.edc.runtime.metamodel.annotation.Provider;
 import org.eclipse.edc.runtime.metamodel.annotation.Provides;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
@@ -60,6 +62,14 @@ public class DataPlaneHttpProxyExtension implements ServiceExtension {
     @Override
     public String name() {
         return NAME;
+    }
+
+    @Provider
+    public PipelineService pipelineService(ServiceExtensionContext context) {
+        if (pipelineService == null) {
+            return new PipelineServiceImpl(context.getMonitor());
+        }
+        return pipelineService;
     }
 
     @Override
