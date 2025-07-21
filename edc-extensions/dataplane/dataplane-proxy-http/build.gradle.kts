@@ -31,6 +31,7 @@ dependencies {
     //implementation(libs.edc.lib.util )
     implementation(project(":spi:core-spi"))
     implementation(libs.edc.dpf.http)
+    implementation(libs.edc.dpf.core)
 
     testImplementation(libs.edc.junit)
     testImplementation(libs.edc.core.runtime)
