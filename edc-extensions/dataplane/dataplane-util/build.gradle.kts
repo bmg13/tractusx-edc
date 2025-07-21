@@ -14,6 +14,7 @@
 
 plugins {
     `java-library`
+    `maven-publish`
 }
 
 dependencies {
@@ -23,14 +24,11 @@ dependencies {
 
     implementation(libs.opentelemetry.instrumentation.annotations)
 
-    //implementation(project(":edc-extensions:dataplane:dataplane-http"))
     implementation(libs.edc.dpf.http)
-    implementation(project(":edc-extensions:dataplane:dataplane-smt-http"))
+    implementation(project(":edc-extensions:dataplane:dataplane-proxy-http"))
 
     implementation(project(":spi:core-spi"))
-    //runtimeOnly(project(":edc-extensions:dataplane:dataplane-proxy:dataplane-public-api-v2")) // todo: change to proper module
 
-    //testImplementation(project(":tests:junit-base"));
     testImplementation(libs.edc.junit)
 
 }

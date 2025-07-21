@@ -28,7 +28,8 @@ dependencies {
     implementation(libs.edc.spi.transfer)
     //implementation(project(":edc-extensions:dataplane:dataplane-http"))
     implementation(libs.edc.dpf.http)
-    implementation(project(":edc-extensions:dataplane:dataplane-smt-http"))
+    //implementation(libs.edc.dpf.core)
+    implementation(project(":edc-extensions:dataplane:dataplane-proxy-http"))
 
     testImplementation(libs.edc.junit)
 }
