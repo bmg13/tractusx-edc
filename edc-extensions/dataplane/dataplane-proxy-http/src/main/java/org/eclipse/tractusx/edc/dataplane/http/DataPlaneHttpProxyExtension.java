@@ -17,11 +17,10 @@
  * SPDX-License-Identifier: Apache-2.0
  **/
 
-package org.eclipse.edc.connector.dataplane.http;
+package org.eclipse.tractusx.edc.dataplane.http;
 
 import org.eclipse.edc.connector.dataplane.http.params.HttpRequestFactory;
 import org.eclipse.edc.connector.dataplane.http.params.HttpRequestParamsProviderImpl;
-import org.eclipse.edc.connector.dataplane.http.pipeline.ProxyHttpDataSourceFactory;
 import org.eclipse.edc.connector.dataplane.http.spi.HttpRequestParamsProvider;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataTransferExecutorServiceContainer;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
@@ -33,6 +32,7 @@ import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
+import org.eclipse.tractusx.edc.dataplane.http.pipeline.ProxyHttpDataSourceFactory;
 
 /**
  * Provides support for reading data from an HTTP endpoint and sending data to an HTTP endpoint.

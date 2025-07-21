@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.edc.connector.dataplane.http.pipeline;
+package org.eclipse.tractusx.edc.dataplane.http.pipeline;
 
 import org.eclipse.edc.connector.dataplane.http.params.HttpRequestFactory;
 import org.eclipse.edc.connector.dataplane.http.spi.HttpDataAddress;

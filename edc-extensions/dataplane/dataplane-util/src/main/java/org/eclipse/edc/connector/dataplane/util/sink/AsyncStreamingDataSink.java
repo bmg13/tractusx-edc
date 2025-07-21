@@ -19,7 +19,6 @@
 
 package org.eclipse.edc.connector.dataplane.util.sink;
 
-import org.eclipse.edc.connector.dataplane.http.pipeline.ProxyHttpPart;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
@@ -27,6 +26,7 @@ import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.response.StatusResult;
 import org.eclipse.edc.spi.result.AbstractResult;
 import org.eclipse.tractusx.edc.ProxyStreamResult;
+import org.eclipse.tractusx.edc.dataplane.http.pipeline.ProxyHttpPart;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
