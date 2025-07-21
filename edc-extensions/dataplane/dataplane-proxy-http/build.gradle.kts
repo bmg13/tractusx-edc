@@ -21,13 +21,13 @@
 
 plugins {
     `java-library`
-    //`java-test-fixtures`
+    `maven-publish`
 }
 
 dependencies {
     api(libs.edc.spi.http)
     api(libs.edc.spi.dataplane.dataplane)
-    //api(project(":edc-extensions:dataplane:dataplane-http-spi"))
+    api(project(":edc-extensions:dataplane:dataplane-http-spi"))
     //implementation(libs.edc.lib.util )
     implementation(project(":spi:core-spi"))
     implementation(libs.edc.dpf.http)

@@ -29,7 +29,6 @@ import org.eclipse.edc.http.spi.EdcHttpClient;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Provides;
-import org.eclipse.edc.runtime.metamodel.annotation.Setting;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
@@ -41,11 +40,7 @@ import org.eclipse.edc.spi.types.TypeManager;
 @Provides(HttpRequestParamsProvider.class)
 @Extension(value = DataPlaneHttpProxyExtension.NAME)
 public class DataPlaneHttpProxyExtension implements ServiceExtension {
-    public static final String NAME = "Data Plane HTTP";
-    private static final int DEFAULT_PARTITION_SIZE = 5;
-
-    @Setting(description = "Number of partitions for parallel message push in the HttpDataSink", defaultValue = DEFAULT_PARTITION_SIZE + "", key = "edc.dataplane.http.sink.partition.size")
-    private int partitionSize;
+    protected static final String NAME = "Data Plane Proxy HTTP Extension";
 
     @Inject
     private EdcHttpClient httpClient;

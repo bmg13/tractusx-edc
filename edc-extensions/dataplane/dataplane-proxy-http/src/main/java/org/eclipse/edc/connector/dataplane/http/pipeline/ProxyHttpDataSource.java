@@ -70,8 +70,7 @@ public class ProxyHttpDataSource implements DataSource {
         try {
             // NB: Do not close the response as the body input stream needs to be read after this method returns. The response closes the body stream.
             var response = httpClient.execute(request);
-            var smt = handleResponse(response);
-            return smt;
+            return handleResponse(response);
         } catch (IOException e) {
             throw new EdcException(e);
         }
