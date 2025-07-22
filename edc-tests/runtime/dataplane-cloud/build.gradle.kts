@@ -30,6 +30,7 @@ dependencies {
         exclude("org.eclipse.edc", "api-observability")
         exclude("org.eclipse.edc", "data-plane-selector-client")
         exclude("org.eclipse.edc", "data-plane-self-registration")
+       // exclude("org.eclipse.edc", "data-plane-http")
     }
 }
 

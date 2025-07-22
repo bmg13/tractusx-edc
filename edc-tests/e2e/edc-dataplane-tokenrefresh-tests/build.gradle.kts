@@ -30,7 +30,7 @@ dependencies {
     //implementation(project(":edc-extensions:dataplane:dataplane-http"))
     testImplementation(libs.edc.dpf.http)
     //testImplementation(libs.edc.dpf.core)
-    testImplementation(project(":edc-extensions:dataplane:dataplane-proxy-http"))
+    testImplementation(project(":edc-extensions:dataplane:dataplane-proxy:dataplane-proxy-http"))
     testImplementation(libs.edc.spi.identity.did)
 
     testImplementation(libs.bouncyCastle.bcpkixJdk18on)

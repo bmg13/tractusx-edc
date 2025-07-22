@@ -27,12 +27,14 @@ plugins {
 dependencies {
     api(libs.edc.spi.http)
     api(libs.edc.spi.dataplane.dataplane)
-    api(project(":edc-extensions:dataplane:dataplane-http-spi"))
+    api(libs.edc.spi.dataplane.http)
+    //api(project(":edc-extensions:dataplane:dataplane-http-spi"))
     implementation(libs.edc.lib.util )
     implementation(project(":spi:core-spi"))
     implementation(libs.edc.dpf.http)
-    implementation(libs.edc.dpf.core)
-    implementation(libs.edc.cp.api.client )
+    //implementation(libs.edc.dpf.core)
+    //implementation(libs.edc.cp.api.client )
+    implementation(project(":edc-extensions:non-finite-provider-push:non-finite-provider-push-core"))
 
     testImplementation(libs.edc.junit)
     testImplementation(libs.edc.core.runtime)

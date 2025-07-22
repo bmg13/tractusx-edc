@@ -36,6 +36,7 @@ dependencies {
     runtimeOnly(project(":edc-dataplane:edc-dataplane-base")) {
         exclude("org.eclipse.edc", "api-observability")
         exclude("org.eclipse.edc", "data-plane-selector-client")
+     //   exclude("org.eclipse.edc", "data-plane-http")
     }
 
     implementation(libs.edc.core.controlplane)
@@ -50,6 +51,16 @@ dependencies {
     implementation(libs.edc.ih.did)
     implementation(libs.edc.ih.common.core)
     implementation(libs.edc.ih.core)
+
+    implementation(libs.edc.spi.http)
+    implementation(libs.edc.spi.dataplane.dataplane)
+    implementation(libs.edc.spi.dataplane.http)
+    //api(project(":edc-extensions:dataplane:dataplane-http-spi"))
+    implementation(libs.edc.lib.util )
+    implementation(project(":spi:core-spi"))
+    implementation(libs.edc.dpf.http)
+    implementation(libs.edc.dpf.core)
+    implementation(project(":edc-extensions:dataplane:dataplane-proxy:dataplane-proxy-http"))
 
     // for the controller
     implementation(libs.jakarta.rsApi)

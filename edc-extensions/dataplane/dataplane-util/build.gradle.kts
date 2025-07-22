@@ -25,7 +25,7 @@ dependencies {
     implementation(libs.opentelemetry.instrumentation.annotations)
 
     implementation(libs.edc.dpf.http)
-    implementation(project(":edc-extensions:dataplane:dataplane-proxy-http"))
+    implementation(project(":edc-extensions:dataplane:dataplane-proxy:dataplane-proxy-http"))
 
     implementation(project(":spi:core-spi"))
 

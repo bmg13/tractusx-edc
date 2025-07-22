@@ -39,6 +39,17 @@ dependencies {
     testImplementation(libs.restAssured)
     testImplementation(libs.awaitility)
     testImplementation(libs.bouncyCastle.bcpkixJdk18on)
+    testImplementation(libs.edc.spi.http)
+    testImplementation(libs.edc.spi.dataplane.dataplane)
+    testImplementation(libs.edc.spi.dataplane.http)
+    //api(project(":edc-extensions:dataplane:dataplane-http-spi"))
+    testImplementation(libs.edc.lib.util )
+    testImplementation(project(":spi:core-spi"))
+    testImplementation(libs.edc.dpf.http)
+    testImplementation(libs.edc.dpf.core)
+
+    testImplementation(project(":edc-extensions:dataplane:dataplane-proxy:dataplane-proxy-http"))
+
 
     testCompileOnly(project(":edc-tests:runtime:iatp:runtime-memory-iatp-dim-ih"))
     testCompileOnly(project(":edc-tests:runtime:iatp:runtime-memory-iatp-ih"))
