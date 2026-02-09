@@ -44,6 +44,7 @@ class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinition
         properties.put(CONTRACT_AGREEMENT_ID_HEADER, dataFlow.getAgreementId());
         return ProvisionResource.Builder.newInstance()
                 .flowId(dataFlow.getId())
+                .type(TYPE)
                 .dataAddress(dataFlow.getSource())
                 .properties(properties)
                 .build();

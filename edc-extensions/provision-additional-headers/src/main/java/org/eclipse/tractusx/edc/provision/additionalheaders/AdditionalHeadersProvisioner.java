@@ -45,6 +45,7 @@ public class AdditionalHeadersProvisioner implements Provisioner {
         var address =
                 HttpDataAddress.Builder.newInstance()
                         .copyFrom(provisionResource.getDataAddress())
+                        .type(provisionResource.getType())
                         .addAdditionalHeader(CONTRACT_AGREEMENT_ID_HEADER,
                                 provisionResource.getProperties().get(CONTRACT_AGREEMENT_ID_HEADER).toString())
                         .addAdditionalHeader(BPN_HEADER,
