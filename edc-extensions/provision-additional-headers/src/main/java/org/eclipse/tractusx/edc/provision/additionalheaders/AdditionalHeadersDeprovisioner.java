@@ -1,6 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
- * Copyright (c) 2021,2023 Contributors to the Eclipse Foundation
+ * Copyright (c) 2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -20,17 +19,16 @@
 
 package org.eclipse.tractusx.edc.provision.additionalheaders;
 
-import org.eclipse.edc.connector.dataplane.spi.DataFlow;
+import org.eclipse.edc.connector.dataplane.spi.provision.DeprovisionedResource;
+import org.eclipse.edc.connector.dataplane.spi.provision.Deprovisioner;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
-import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGenerator;
+import org.eclipse.edc.spi.response.StatusResult;
 
-import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 
-import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
-import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.TYPE;
 
-class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinitionGenerator {
+public class AdditionalHeadersDeprovisioner implements Deprovisioner {
 
     @Override
     public String supportedType() {
@@ -38,14 +36,8 @@ class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinition
     }
 
     @Override
-    public ProvisionResource generate(DataFlow dataFlow) {
-        var properties = new HashMap<String, Object>();
-        properties.put(BPN_HEADER, dataFlow.getParticipantId());
-        properties.put(CONTRACT_AGREEMENT_ID_HEADER, dataFlow.getAgreementId());
-        return ProvisionResource.Builder.newInstance()
-                .flowId(dataFlow.getId())
-                .dataAddress(dataFlow.getSource())
-                .properties(properties)
-                .build();
+    public CompletableFuture<StatusResult<DeprovisionedResource>> deprovision(ProvisionResource provisionResource) {
+        return CompletableFuture.completedFuture(StatusResult.success(
+                DeprovisionedResource.Builder.newInstance().id(provisionResource.getId()).build())); // nothing to deprovision
     }
 }

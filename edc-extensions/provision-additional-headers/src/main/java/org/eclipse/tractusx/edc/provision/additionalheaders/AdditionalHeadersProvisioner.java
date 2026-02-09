@@ -20,57 +20,44 @@
 
 package org.eclipse.tractusx.edc.provision.additionalheaders;
 
-import org.eclipse.edc.connector.controlplane.transfer.spi.provision.Provisioner;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedResource;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionResponse;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedResource;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 import org.eclipse.edc.connector.dataplane.http.spi.HttpDataAddress;
-import org.eclipse.edc.policy.model.Policy;
+import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
+import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionedResource;
+import org.eclipse.edc.connector.dataplane.spi.provision.Provisioner;
 import org.eclipse.edc.spi.response.StatusResult;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class AdditionalHeadersProvisioner implements Provisioner<AdditionalHeadersResourceDefinition, AdditionalHeadersProvisionedResource> {
+import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
+import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
+import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.TYPE;
+
+public class AdditionalHeadersProvisioner implements Provisioner {
 
     @Override
-    public boolean canProvision(ResourceDefinition resourceDefinition) {
-        return resourceDefinition instanceof AdditionalHeadersResourceDefinition;
+    public String supportedType() {
+        return TYPE;
     }
 
     @Override
-    public boolean canDeprovision(ProvisionedResource provisionedResource) {
-        return provisionedResource instanceof AdditionalHeadersProvisionedResource;
-    }
-
-    @Override
-    public CompletableFuture<StatusResult<ProvisionResponse>> provision(AdditionalHeadersResourceDefinition resourceDefinition, Policy policy) {
-
+    public CompletableFuture<StatusResult<ProvisionedResource>> provision(ProvisionResource provisionResource) {
         var address =
                 HttpDataAddress.Builder.newInstance()
-                        .copyFrom(resourceDefinition.getDataAddress())
-                        .addAdditionalHeader("Edc-Contract-Agreement-Id", resourceDefinition.getContractId())
-                        .addAdditionalHeader("Edc-Bpn", resourceDefinition.getBpn())
+                        .copyFrom(provisionResource.getDataAddress())
+                        .addAdditionalHeader(CONTRACT_AGREEMENT_ID_HEADER,
+                                provisionResource.getProperties().get(CONTRACT_AGREEMENT_ID_HEADER).toString())
+                        .addAdditionalHeader(BPN_HEADER,
+                                provisionResource.getProperties().get(BPN_HEADER).toString())
                         .build();
 
-        var provisioned = AdditionalHeadersProvisionedResource.Builder.newInstance()
+        var provisionedResource = ProvisionedResource.Builder.from(provisionResource)
                 .id(UUID.randomUUID().toString())
-                .resourceDefinitionId(resourceDefinition.getId())
-                .transferProcessId(resourceDefinition.getTransferProcessId())
+                .flowId(provisionResource.getFlowId())
                 .dataAddress(address)
-                .resourceName(UUID.randomUUID().toString())
-                .hasToken(false)
+                .properties(provisionResource.getProperties())
                 .build();
-
-        var response = ProvisionResponse.Builder.newInstance().resource(provisioned).build();
-        var result = StatusResult.success(response);
+        var result = StatusResult.success(provisionedResource);
         return CompletableFuture.completedFuture(result);
-    }
-
-    @Override
-    public CompletableFuture<StatusResult<DeprovisionedResource>> deprovision(
-            AdditionalHeadersProvisionedResource resource, Policy policy) {
-        return CompletableFuture.completedFuture(StatusResult.success(DeprovisionedResource.Builder.newInstance().provisionedResourceId(resource.getId()).build())); // nothing to deprovision
     }
 }

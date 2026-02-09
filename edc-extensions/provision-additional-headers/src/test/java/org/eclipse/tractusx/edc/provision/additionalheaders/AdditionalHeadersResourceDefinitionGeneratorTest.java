@@ -20,114 +20,61 @@
 
 package org.eclipse.tractusx.edc.provision.additionalheaders;
 
-import org.eclipse.edc.connector.controlplane.contract.spi.types.agreement.ContractAgreement;
-import org.eclipse.edc.connector.controlplane.services.spi.contractagreement.ContractAgreementService;
-import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ProviderResourceDefinitionGenerator;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.connector.dataplane.http.spi.HttpDataAddress;
-import org.eclipse.edc.policy.model.Policy;
+import org.eclipse.edc.connector.dataplane.spi.DataFlow;
+import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
+import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGenerator;
 import org.eclipse.edc.spi.types.domain.DataAddress;
-import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
+import org.eclipse.edc.spi.types.domain.transfer.TransferType;
 import org.junit.jupiter.api.Test;
-
-import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.eclipse.edc.connector.dataplane.spi.DataFlowStates.STARTED;
+import static org.eclipse.edc.spi.types.domain.transfer.FlowType.PULL;
+import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
+import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
 
 class AdditionalHeadersResourceDefinitionGeneratorTest {
 
-    private final ContractAgreementService contractAgreementService = mock();
-    private final BdrsClient bdrsClient = mock();
-    private final ProviderResourceDefinitionGenerator generator = new AdditionalHeadersResourceDefinitionGenerator(contractAgreementService, bdrsClient);
-
-    private static ContractAgreement contractAgreementWithConsumerId(String bpn) {
-        return ContractAgreement.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
-                .consumerId(bpn)
-                .providerId("providerId")
-                .assetId("assetId")
-                .policy(Policy.Builder.newInstance().build())
-                .build();
-    }
+    private final ResourceDefinitionGenerator generator = new AdditionalHeadersResourceDefinitionGenerator();
 
     @Test
-    void canGenerate_shouldReturnFalseForNotHttpDataAddresses() {
+    void supportType_shouldReturnFalseForNotHttpDataAddresses() {
         var dataAddress = DataAddress.Builder.newInstance().type("any").build();
-        var build = Policy.Builder.newInstance().build();
-        var transferProcess = TransferProcess.Builder.newInstance().build();
-
-        var result = generator.canGenerate(transferProcess, dataAddress, build);
-
-        assertThat(result).isFalse();
+        assertThat(generator.supportedType()).isNotEqualTo(dataAddress.getType());
     }
 
     @Test
-    void canGenerate_shouldReturnTrueForHttpDataAddresses() {
+    void supportType_shouldReturnTrueForNotHttpDataAddresses() {
         var dataAddress = DataAddress.Builder.newInstance().type("HttpData").build();
-        var build = Policy.Builder.newInstance().build();
-        var transferProcess = TransferProcess.Builder.newInstance().build();
-
-        var result = generator.canGenerate(transferProcess, dataAddress, build);
-
-        assertThat(result).isTrue();
+        assertThat(generator.supportedType()).isEqualTo(dataAddress.getType());
     }
 
     @Test
-    void shouldCreateResourceDefinitionWithDataAddress() {
+    void shouldCreateProvisionResourceWithDataAddress() {
         var dataAddress = HttpDataAddress.Builder.newInstance().baseUrl("http://any").build();
-        var build = Policy.Builder.newInstance().build();
-        when(contractAgreementService.findById(any())).thenReturn(contractAgreementWithConsumerId("bpn"));
-        var transferProcess = TransferProcess.Builder.newInstance()
-                .dataDestination(dataAddress)
-                .contractId("contractId")
+        var dataFlow = DataFlow.Builder.newInstance()
+                .state(STARTED.code())
+                .participantId("bpn")
+                .agreementId("contractId")
+                .source(dataAddress)
+                .transferType(new TransferType("destination", PULL))
                 .build();
 
-        var result = generator.generate(transferProcess, dataAddress, build);
+        var result = generator.generate(dataFlow);
 
         assertThat(result)
-                .asInstanceOf(type(AdditionalHeadersResourceDefinition.class))
+                .asInstanceOf(type(ProvisionResource.class))
                 .satisfies(resourceDefinition -> {
                     assertThat(resourceDefinition.getDataAddress())
                             .extracting(address -> HttpDataAddress.Builder.newInstance().copyFrom(address).build())
                             .extracting(HttpDataAddress::getBaseUrl)
                             .isEqualTo("http://any");
-                    assertThat(resourceDefinition.getContractId()).isEqualTo("contractId");
-                    assertThat(resourceDefinition.getBpn()).isEqualTo("bpn");
+                    assertThat(resourceDefinition.getProperties().containsKey(CONTRACT_AGREEMENT_ID_HEADER)).isTrue();
+                    assertThat(resourceDefinition.getProperties().get(CONTRACT_AGREEMENT_ID_HEADER)).isEqualTo("contractId");
+                    assertThat(resourceDefinition.getProperties().containsKey(BPN_HEADER)).isTrue();
+                    assertThat(resourceDefinition.getProperties().get(BPN_HEADER)).isEqualTo("bpn");
                 });
-        verify(contractAgreementService).findById("contractId");
-    }
-    
-    @Test
-    void whenIdIsDid_shouldCallBdrsClientAndCreateResourceDefinitionWithDataAddress() {
-        var bpn = "bpn";
-        var did = "did:web:abc";
-        
-        var dataAddress = HttpDataAddress.Builder.newInstance().baseUrl("http://any").build();
-        var build = Policy.Builder.newInstance().build();
-        when(contractAgreementService.findById(any())).thenReturn(contractAgreementWithConsumerId(did));
-        when(bdrsClient.resolveBpn(did)).thenReturn(bpn);
-        var transferProcess = TransferProcess.Builder.newInstance()
-                .dataDestination(dataAddress)
-                .contractId("contractId")
-                .build();
-        
-        var result = generator.generate(transferProcess, dataAddress, build);
-        
-        assertThat(result)
-                .asInstanceOf(type(AdditionalHeadersResourceDefinition.class))
-                .satisfies(resourceDefinition -> {
-                    assertThat(resourceDefinition.getDataAddress())
-                            .extracting(address -> HttpDataAddress.Builder.newInstance().copyFrom(address).build())
-                            .extracting(HttpDataAddress::getBaseUrl)
-                            .isEqualTo("http://any");
-                    assertThat(resourceDefinition.getContractId()).isEqualTo("contractId");
-                    assertThat(resourceDefinition.getBpn()).isEqualTo(bpn);
-                });
-        verify(contractAgreementService).findById("contractId");
     }
 }

@@ -20,36 +20,35 @@
 
 package org.eclipse.tractusx.edc.provision.additionalheaders;
 
-import org.eclipse.edc.connector.controlplane.services.spi.contractagreement.ContractAgreementService;
-import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ProvisionManager;
-import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ResourceManifestGenerator;
+import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionerManager;
+import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGeneratorManager;
+import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
-import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 
+import static org.eclipse.tractusx.edc.provision.additionalheaders.ProvisionAdditionalHeadersExtension.NAME;
+
+@Extension(NAME)
 public class ProvisionAdditionalHeadersExtension implements ServiceExtension {
 
-    @Inject
-    private ResourceManifestGenerator resourceManifestGenerator;
+    public static final String NAME = "ProvisionAdditional Headers Extension";
 
     @Inject
-    private ProvisionManager provisionManager;
+    private ResourceDefinitionGeneratorManager manifestGenerator;
+
+    @Inject
+    private ProvisionerManager provisionManager;
 
     @Inject
     private TypeManager typeManager;
 
-    @Inject
-    private ContractAgreementService contractAgreementService;
-    
-    @Inject
-    private BdrsClient bdrsClient;
-
     @Override
     public void initialize(ServiceExtensionContext context) {
         typeManager.registerTypes(AdditionalHeadersResourceDefinition.class, AdditionalHeadersProvisionedResource.class);
-        resourceManifestGenerator.registerGenerator(new AdditionalHeadersResourceDefinitionGenerator(contractAgreementService, bdrsClient));
+        manifestGenerator.registerProviderGenerator(new AdditionalHeadersResourceDefinitionGenerator());
         provisionManager.register(new AdditionalHeadersProvisioner());
+        provisionManager.register(new AdditionalHeadersDeprovisioner());
     }
 }

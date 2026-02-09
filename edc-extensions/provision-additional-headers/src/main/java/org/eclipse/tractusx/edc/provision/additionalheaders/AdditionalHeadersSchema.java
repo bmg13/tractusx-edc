@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2023 Contributors to the Eclipse Foundation
+ * Copyright (c) 2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -17,19 +17,14 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-plugins {
-    `maven-publish`
-    `java-library`
-}
+package org.eclipse.tractusx.edc.provision.additionalheaders;
 
-dependencies {
-    implementation(project(":spi:bdrs-client-spi"))
+public class AdditionalHeadersSchema {
 
-    implementation(libs.edc.spi.controlplane)
-    implementation(libs.edc.spi.core)
-    implementation(libs.edc.spi.transfer)
-    implementation(libs.edc.spi.dataplane.http)
-    implementation(libs.edc.spi.dataplane.dataplane)
+    private AdditionalHeadersSchema() {
+    }
 
-    testImplementation(libs.edc.junit)
+    static final String TYPE = "HttpData";
+    static final String CONTRACT_AGREEMENT_ID_HEADER = "Edc-Contract-Agreement-Id";
+    static final String BPN_HEADER = "Edc-Bpn";
 }

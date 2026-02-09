@@ -1,6 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
- * Copyright (c) 2021,2023 Contributors to the Eclipse Foundation
+ * Copyright (c) 2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -20,9 +19,9 @@
 
 package org.eclipse.tractusx.edc.provision.additionalheaders;
 
+
 import org.eclipse.edc.connector.dataplane.http.spi.HttpDataAddress;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
-import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionedResource;
 import org.eclipse.edc.spi.response.StatusResult;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.junit.jupiter.api.Test;
@@ -32,14 +31,13 @@ import java.util.UUID;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.map;
-import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
 
-class AdditionalHeadersProvisionerTest {
 
-    private final AdditionalHeadersProvisioner provisioner = new AdditionalHeadersProvisioner();
+class AdditionalHeadersDeprovisionerTest {
+
+    private final AdditionalHeadersDeprovisioner provisioner = new AdditionalHeadersDeprovisioner();
 
     @Test
     void supportType_shouldReturnFalseForNotHttpDataAddresses() {
@@ -54,7 +52,7 @@ class AdditionalHeadersProvisionerTest {
     }
 
     @Test
-    void shouldAddAdditionalHeaders() {
+    void shouldDeprovision() {
         var address = HttpDataAddress.Builder.newInstance().baseUrl("http://any").build();
         var bpn = "bpn";
         var contractId = "contractId";
@@ -67,17 +65,9 @@ class AdditionalHeadersProvisionerTest {
                 .properties(properties)
                 .build();
 
-        var result = provisioner.provision(provisionResource);
+        var result = provisioner.deprovision(provisionResource);
         assertThat(result)
                 .succeedsWithin(5, SECONDS)
-                .matches(StatusResult::succeeded)
-                .extracting(StatusResult::getContent)
-                .asInstanceOf(type(ProvisionedResource.class))
-                .extracting(ProvisionedResource::getDataAddress)
-                .extracting(a -> HttpDataAddress.Builder.newInstance().copyFrom(a).build())
-                .extracting(HttpDataAddress::getAdditionalHeaders)
-                .asInstanceOf(map(String.class, String.class))
-                .containsEntry(CONTRACT_AGREEMENT_ID_HEADER, contractId)
-                .containsEntry(BPN_HEADER, bpn);
+                .matches(StatusResult::succeeded);
     }
 }
