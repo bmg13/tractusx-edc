@@ -26,7 +26,6 @@ import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionedResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.Provisioner;
 import org.eclipse.edc.spi.response.StatusResult;
 
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
@@ -52,7 +51,7 @@ public class AdditionalHeadersProvisioner implements Provisioner {
                         .build();
 
         var provisionedResource = ProvisionedResource.Builder.from(provisionResource)
-                .id(UUID.randomUUID().toString())
+                .id(provisionResource.getId())
                 .flowId(provisionResource.getFlowId())
                 .dataAddress(address)
                 //.properties(provisionResource.getProperties())
