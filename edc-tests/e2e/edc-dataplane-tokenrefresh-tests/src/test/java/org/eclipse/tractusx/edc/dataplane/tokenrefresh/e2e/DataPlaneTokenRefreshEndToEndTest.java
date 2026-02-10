@@ -44,6 +44,7 @@ import org.eclipse.edc.spi.system.configuration.ConfigFactory;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.FlowType;
 import org.eclipse.edc.spi.types.domain.transfer.TransferType;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 import org.eclipse.tractusx.edc.spi.tokenrefresh.dataplane.model.TokenResponse;
 import org.eclipse.tractusx.edc.tests.MockBdrsClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +68,6 @@ import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_PREFIX
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_SUFFIX;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DID_PREFIX;
 import static org.hamcrest.Matchers.containsString;
-import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 
 
 @EndToEndTest
