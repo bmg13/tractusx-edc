@@ -42,7 +42,7 @@ class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinition
                 .id(UUID.randomUUID().toString())
                 .flowId(dataFlow.getId())
                 .type(AdditionalHeadersSchema.TYPE)
-                .dataAddress(dataAddress)
+                .dataAddress(dataFlow.getSource())
                 .property(BPN_HEADER, dataFlow.getParticipantId())
                 .property(CONTRACT_AGREEMENT_ID_HEADER, dataFlow.getAgreementId())
                 .build();
