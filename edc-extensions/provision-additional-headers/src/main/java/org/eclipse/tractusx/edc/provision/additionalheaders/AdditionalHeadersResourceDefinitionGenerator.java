@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
+import static org.eclipse.tractusx.edc.spi.identity.mapper.BdrsConstants.DID_PREFIX;
 
 class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinitionGenerator {
 
@@ -38,6 +39,10 @@ class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinition
 
     @Override
     public ProvisionResource generate(DataFlow dataFlow) {
+        var identity = dataFlow.getParticipantId();
+        if (identity != null && identity.startsWith(DID_PREFIX)) {
+            identity = identity.replace(DID_PREFIX + "web:", "");
+        }
         return ProvisionResource.Builder.newInstance()
                 .id(UUID.randomUUID().toString())
                 .flowId(dataFlow.getId())
