@@ -45,6 +45,7 @@ import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.FlowType;
 import org.eclipse.edc.spi.types.domain.transfer.TransferType;
 import org.eclipse.tractusx.edc.spi.tokenrefresh.dataplane.model.TokenResponse;
+import org.eclipse.tractusx.edc.tests.MockBdrsClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.tractusx.edc.edr.spi.CoreConstants.AUDIENCE_PROPERTY;
 import static org.eclipse.tractusx.edc.edr.spi.CoreConstants.TX_AUTH_NS;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_PREFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_SUFFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DID_PREFIX;
 import static org.hamcrest.Matchers.containsString;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 
 
 @EndToEndTest
@@ -77,6 +82,9 @@ public class DataPlaneTokenRefreshEndToEndTest {
     @RegisterExtension
     private static final RuntimeExtension DATAPLANE_RUNTIME = new RuntimePerMethodExtension(
             new EmbeddedRuntime("Token-Refresh-Dataplane", ":edc-tests:runtime:dataplane-cloud")
+                    .registerServiceMock(BdrsClient.class, new MockBdrsClient(
+                            bpn -> DID_PREFIX + bpn.replace(BPN_SUFFIX, ""),
+                            did -> BPN_PREFIX + did.replace(DID_PREFIX, "")))
                     .configurationProvider(RUNTIME_CONFIG::getConfig)
                     .configurationProvider(() -> ConfigFactory.fromMap(Map.of(
                             "edc.transfer.proxy.token.signer.privatekey.alias", PROVIDER_KEY_ID,

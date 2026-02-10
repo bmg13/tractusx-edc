@@ -31,6 +31,8 @@ import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
 import org.eclipse.edc.junit.utils.LazySupplier;
 import org.eclipse.edc.spi.system.configuration.ConfigFactory;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
+import org.eclipse.tractusx.edc.tests.MockBdrsClient;
 import org.eclipse.tractusx.edc.tests.aws.MinioExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -62,6 +64,9 @@ import static org.eclipse.edc.util.io.Ports.getFreePort;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.PREFIX_FOR_MUTIPLE_FILES;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.TESTFILE_NAME;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestFunctions.createSparseFile;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_PREFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_SUFFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DID_PREFIX;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 /**
@@ -82,6 +87,9 @@ public class S3ToS3Test {
                     .configurationProvider(() -> ConfigFactory.fromMap(Map.of(
                             "edc.dataplane.aws.sink.chunk.size.mb", "50"
                     )))
+                    .registerServiceMock(BdrsClient.class, new MockBdrsClient(
+                            bpn -> DID_PREFIX + bpn.replace(BPN_SUFFIX, ""),
+                            did -> BPN_PREFIX + did.replace(DID_PREFIX, "")))
     );
 
     @RegisterExtension

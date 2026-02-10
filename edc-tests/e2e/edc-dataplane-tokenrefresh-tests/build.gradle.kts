@@ -24,12 +24,14 @@ plugins {
 dependencies {
     testImplementation(project(":spi:core-spi"))
     testImplementation(project(":spi:tokenrefresh-spi"))
+    testImplementation(testFixtures(project(":edc-tests:e2e-fixtures")))
 
     testImplementation(libs.edc.junit)
     testImplementation(testFixtures(libs.edc.api.management.test.fixtures))
     testImplementation(libs.edc.dpf.http)
     testImplementation(libs.edc.spi.identity.did)
     testImplementation(libs.edc.spi.participant.context.single)
+    testImplementation(project(":spi:bdrs-client-spi"))
 
     testImplementation(libs.bouncyCastle.bcpkixJdk18on)
     testImplementation(libs.nimbus.jwt)

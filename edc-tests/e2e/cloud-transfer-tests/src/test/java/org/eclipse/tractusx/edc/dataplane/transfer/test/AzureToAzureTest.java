@@ -32,6 +32,8 @@ import org.eclipse.edc.junit.utils.LazySupplier;
 import org.eclipse.edc.spi.monitor.ConsoleMonitor;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
+import org.eclipse.tractusx.edc.tests.MockBdrsClient;
 import org.eclipse.tractusx.edc.tests.azure.AzureBlobClient;
 import org.eclipse.tractusx.edc.tests.azure.AzuriteExtension;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +64,9 @@ import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.PRE
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.PROVIDER_AZURITE_ACCOUNT;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.TESTFILE_NAME;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestFunctions.createSparseFile;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_PREFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_SUFFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DID_PREFIX;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.spy;
@@ -85,7 +90,11 @@ public class AzureToAzureTest {
     protected static final RuntimeExtension DATAPLANE_RUNTIME = new RuntimePerClassExtension(new EmbeddedRuntime(
             "AzureBlob-Dataplane",
             ":edc-tests:runtime:dataplane-cloud"
-    ).configurationProvider(() -> RuntimeConfig.Azure.blobstoreDataplaneConfig(CONTROL_API_URI, AZURITE_HOST_PORT))).registerServiceMock(Monitor.class, spy(new ConsoleMonitor("AzureBlob-Dataplane", ConsoleMonitor.Level.DEBUG, true)));
+    ).configurationProvider(() -> RuntimeConfig.Azure.blobstoreDataplaneConfig(CONTROL_API_URI, AZURITE_HOST_PORT)))
+            .registerServiceMock(Monitor.class, spy(new ConsoleMonitor("AzureBlob-Dataplane", ConsoleMonitor.Level.DEBUG, true)))
+            .registerServiceMock(BdrsClient.class, new MockBdrsClient(
+                    bpn -> DID_PREFIX + bpn.replace(BPN_SUFFIX, ""),
+                    did -> BPN_PREFIX + did.replace(DID_PREFIX, "")));
 
     /**
      * Currently we have to use one container to host both consumer and provider accounts, because we cannot handle
