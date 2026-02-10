@@ -54,7 +54,6 @@ public class AdditionalHeadersProvisioner implements Provisioner {
                 .id(provisionResource.getId())
                 .flowId(provisionResource.getFlowId())
                 .dataAddress(address)
-                //.properties(provisionResource.getProperties())
                 .properties(provisionResource.getDataAddress().getProperties())
                 .build();
         var result = StatusResult.success(provisionedResource);

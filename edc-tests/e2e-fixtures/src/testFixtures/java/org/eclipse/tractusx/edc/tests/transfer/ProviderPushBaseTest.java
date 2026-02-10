@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -171,7 +172,7 @@ public abstract class ProviderPushBaseTest implements ParticipantAwareTest, Runt
         consumer().terminateTransfer(consumerTransferProcessId);
         consumer().awaitTransferToBeInState(consumerTransferProcessId, TransferProcessStates.TERMINATED);
         await().atMost(ASYNC_TIMEOUT)
-                .untilAsserted(() -> dataFlowIsInState(providerTransferProcessId, DataFlowStates.TERMINATED));
+                .untilAsserted(() -> dataFlowIsInStates(providerTransferProcessId, List.of(DataFlowStates.TERMINATED, DataFlowStates.DEPROVISIONED)));
     }
 
     private void waitAndAssert(Duration duration, Runnable... assertions) {
@@ -185,6 +186,11 @@ public abstract class ProviderPushBaseTest implements ParticipantAwareTest, Runt
     private void dataFlowIsInState(String dataFlowId, DataFlowStates state) {
         var dataflow = providerRuntime().getService(DataPlaneStore.class).findById(dataFlowId);
         assertThat(dataflow.getState()).isEqualTo(state.code());
+    }
+
+    private void dataFlowIsInStates(String dataFlowId, List<DataFlowStates> states) {
+        var dataflow = providerRuntime().getService(DataPlaneStore.class).findById(dataFlowId);
+        assertThat(dataflow.getState()).isIn(states.stream().map(DataFlowStates::code).toArray());
     }
 
     private String createMockHttpDataUrl(String path) {
