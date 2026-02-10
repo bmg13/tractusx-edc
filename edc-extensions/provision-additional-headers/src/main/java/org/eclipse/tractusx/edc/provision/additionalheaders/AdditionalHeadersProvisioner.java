@@ -31,13 +31,12 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
-import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.TYPE;
 
 public class AdditionalHeadersProvisioner implements Provisioner {
 
     @Override
     public String supportedType() {
-        return TYPE;
+        return AdditionalHeadersSchema.TYPE;
     }
 
     @Override
@@ -56,7 +55,8 @@ public class AdditionalHeadersProvisioner implements Provisioner {
                 .id(UUID.randomUUID().toString())
                 .flowId(provisionResource.getFlowId())
                 .dataAddress(address)
-                .properties(provisionResource.getProperties())
+                //.properties(provisionResource.getProperties())
+                .properties(provisionResource.getDataAddress().getProperties())
                 .build();
         var result = StatusResult.success(provisionedResource);
         return CompletableFuture.completedFuture(result);

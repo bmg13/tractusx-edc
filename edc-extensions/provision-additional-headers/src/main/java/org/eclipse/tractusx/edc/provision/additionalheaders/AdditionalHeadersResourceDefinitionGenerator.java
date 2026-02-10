@@ -24,29 +24,28 @@ import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGenerator;
 
-import java.util.HashMap;
+import java.util.UUID;
 
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
-import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.TYPE;
 
 class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinitionGenerator {
 
     @Override
     public String supportedType() {
-        return TYPE;
+        return AdditionalHeadersSchema.TYPE;
     }
 
     @Override
     public ProvisionResource generate(DataFlow dataFlow) {
-        var properties = new HashMap<String, Object>();
-        properties.put(BPN_HEADER, dataFlow.getParticipantId());
-        properties.put(CONTRACT_AGREEMENT_ID_HEADER, dataFlow.getAgreementId());
         return ProvisionResource.Builder.newInstance()
+                .id(UUID.randomUUID().toString())
                 .flowId(dataFlow.getId())
-                .type(TYPE)
-                .dataAddress(dataFlow.getSource())
-                .properties(properties)
+                .type(AdditionalHeadersSchema.TYPE)
+                //.dataAddress(dataFlow.getSource())
+                .dataAddress(dataFlow.getDestination())
+                .property(BPN_HEADER, dataFlow.getParticipantId())
+                .property(CONTRACT_AGREEMENT_ID_HEADER, dataFlow.getAgreementId())
                 .build();
     }
 }

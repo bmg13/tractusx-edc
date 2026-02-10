@@ -26,13 +26,11 @@ import org.eclipse.edc.spi.response.StatusResult;
 
 import java.util.concurrent.CompletableFuture;
 
-import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.TYPE;
-
 public class AdditionalHeadersDeprovisioner implements Deprovisioner {
 
     @Override
     public String supportedType() {
-        return TYPE;
+        return AdditionalHeadersSchema.TYPE;
     }
 
     @Override
