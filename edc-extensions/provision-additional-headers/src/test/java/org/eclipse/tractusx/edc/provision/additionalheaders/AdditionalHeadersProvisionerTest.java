@@ -63,6 +63,7 @@ class AdditionalHeadersProvisionerTest {
         properties.put(CONTRACT_AGREEMENT_ID_HEADER, contractId);
         var provisionResource = ProvisionResource.Builder.newInstance()
                 .flowId(UUID.randomUUID().toString())
+                .type(AdditionalHeadersSchema.TYPE)
                 .dataAddress(address)
                 .properties(properties)
                 .build();
