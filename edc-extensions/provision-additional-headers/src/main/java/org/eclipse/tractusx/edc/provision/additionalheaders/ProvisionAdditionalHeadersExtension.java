@@ -27,6 +27,7 @@ import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 
 import static org.eclipse.tractusx.edc.provision.additionalheaders.ProvisionAdditionalHeadersExtension.NAME;
 
@@ -44,10 +45,13 @@ public class ProvisionAdditionalHeadersExtension implements ServiceExtension {
     @Inject
     private TypeManager typeManager;
 
+    @Inject
+    private BdrsClient bdrsClient;
+
     @Override
     public void initialize(ServiceExtensionContext context) {
         typeManager.registerTypes(AdditionalHeadersResourceDefinition.class, AdditionalHeadersProvisionedResource.class);
-        manifestGenerator.registerProviderGenerator(new AdditionalHeadersResourceDefinitionGenerator());
+        manifestGenerator.registerProviderGenerator(new AdditionalHeadersResourceDefinitionGenerator(bdrsClient));
         provisionManager.register(new AdditionalHeadersProvisioner());
         provisionManager.register(new AdditionalHeadersDeprovisioner());
     }

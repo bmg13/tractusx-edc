@@ -26,6 +26,7 @@ import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGenerator;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.TransferType;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -34,10 +35,12 @@ import static org.eclipse.edc.connector.dataplane.spi.DataFlowStates.STARTED;
 import static org.eclipse.edc.spi.types.domain.transfer.FlowType.PULL;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
+import static org.mockito.Mockito.mock;
 
 class AdditionalHeadersResourceDefinitionGeneratorTest {
 
-    private final ResourceDefinitionGenerator generator = new AdditionalHeadersResourceDefinitionGenerator();
+    private final BdrsClient bdrsClient = mock();
+    private final ResourceDefinitionGenerator generator = new AdditionalHeadersResourceDefinitionGenerator(bdrsClient);
 
     @Test
     void supportType_shouldReturnFalseForNotHttpDataAddresses() {

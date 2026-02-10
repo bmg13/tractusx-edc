@@ -23,6 +23,7 @@ package org.eclipse.tractusx.edc.provision.additionalheaders;
 import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGenerator;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
 
 import java.util.UUID;
 
@@ -31,6 +32,12 @@ import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHea
 import static org.eclipse.tractusx.edc.spi.identity.mapper.BdrsConstants.DID_PREFIX;
 
 class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinitionGenerator {
+
+    private final BdrsClient bdrsClient;
+
+    AdditionalHeadersResourceDefinitionGenerator(BdrsClient bdrsClient) {
+        this.bdrsClient = bdrsClient;
+    }
 
     @Override
     public String supportedType() {
@@ -41,7 +48,7 @@ class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinition
     public ProvisionResource generate(DataFlow dataFlow) {
         var identity = dataFlow.getParticipantId();
         if (identity != null && identity.startsWith(DID_PREFIX)) {
-            identity = identity.replace(DID_PREFIX + "web:", "");
+            identity = bdrsClient.resolveBpn(identity);
         }
         return ProvisionResource.Builder.newInstance()
                 .id(UUID.randomUUID().toString())
