@@ -43,7 +43,7 @@ class AdditionalHeadersResourceDefinitionGenerator implements ResourceDefinition
                 .flowId(dataFlow.getId())
                 .type(AdditionalHeadersSchema.TYPE)
                 .dataAddress(dataFlow.getSource())
-                .property(BPN_HEADER, "BPNL0000CONSUMER")
+                .property(BPN_HEADER, identity)
                 .property(CONTRACT_AGREEMENT_ID_HEADER, dataFlow.getAgreementId())
                 .build();
     }
