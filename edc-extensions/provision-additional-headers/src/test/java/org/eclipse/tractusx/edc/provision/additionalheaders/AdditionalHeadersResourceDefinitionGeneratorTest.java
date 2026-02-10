@@ -36,6 +36,8 @@ import static org.eclipse.edc.spi.types.domain.transfer.FlowType.PULL;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.BPN_HEADER;
 import static org.eclipse.tractusx.edc.provision.additionalheaders.AdditionalHeadersSchema.CONTRACT_AGREEMENT_ID_HEADER;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class AdditionalHeadersResourceDefinitionGeneratorTest {
 
@@ -79,5 +81,37 @@ class AdditionalHeadersResourceDefinitionGeneratorTest {
                     assertThat(resourceDefinition.getProperties().containsKey(BPN_HEADER)).isTrue();
                     assertThat(resourceDefinition.getProperties().get(BPN_HEADER)).isEqualTo("bpn");
                 });
+    }
+
+    @Test
+    void whenIdIsDid_shouldCallBdrsClientAndCreateResourceDefinitionWithDataAddress() {
+        var bpn = "bpn";
+        var did = "did:web:abc";
+
+        var dataAddress = HttpDataAddress.Builder.newInstance().baseUrl("http://any").build();
+        var dataFlow = DataFlow.Builder.newInstance()
+                .state(STARTED.code())
+                .participantId(did)
+                .agreementId("contractId")
+                .source(dataAddress)
+                .transferType(new TransferType("destination", PULL))
+                .build();
+        when(bdrsClient.resolveBpn(did)).thenReturn(bpn);
+
+        var result = generator.generate(dataFlow);
+
+        assertThat(result)
+                .asInstanceOf(type(ProvisionResource.class))
+                .satisfies(resourceDefinition -> {
+                    assertThat(resourceDefinition.getDataAddress())
+                            .extracting(address -> HttpDataAddress.Builder.newInstance().copyFrom(address).build())
+                            .extracting(HttpDataAddress::getBaseUrl)
+                            .isEqualTo("http://any");
+                    assertThat(resourceDefinition.getProperties().containsKey(CONTRACT_AGREEMENT_ID_HEADER)).isTrue();
+                    assertThat(resourceDefinition.getProperties().get(CONTRACT_AGREEMENT_ID_HEADER)).isEqualTo("contractId");
+                    assertThat(resourceDefinition.getProperties().containsKey(BPN_HEADER)).isTrue();
+                    assertThat(resourceDefinition.getProperties().get(BPN_HEADER)).isEqualTo(bpn);
+                });
+        verify(bdrsClient).resolveBpn(did);
     }
 }
