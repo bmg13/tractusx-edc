@@ -31,6 +31,8 @@ import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
 import org.eclipse.edc.junit.testfixtures.TestUtils;
 import org.eclipse.edc.junit.utils.LazySupplier;
 import org.eclipse.edc.spi.security.Vault;
+import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
+import org.eclipse.tractusx.edc.tests.MockBdrsClient;
 import org.eclipse.tractusx.edc.tests.aws.MinioExtension;
 import org.eclipse.tractusx.edc.tests.azure.AzureBlobClient;
 import org.eclipse.tractusx.edc.tests.azure.AzuriteExtension;
@@ -55,6 +57,9 @@ import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.AZB
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.CONSUMER_AZURITE_ACCOUNT;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.PREFIX_FOR_MUTIPLE_FILES;
 import static org.eclipse.tractusx.edc.dataplane.transfer.test.TestConstants.TESTFILE_NAME;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_PREFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.BPN_SUFFIX;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DID_PREFIX;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @Testcontainers
@@ -71,7 +76,10 @@ public class MultiCloudTest {
     @RegisterExtension
     protected static final RuntimeExtension DATAPLANE_RUNTIME = new RuntimePerClassExtension(
             new EmbeddedRuntime("MultiCloud-Dataplane", ":edc-tests:runtime:dataplane-cloud")
-                    .configurationProvider(() -> RuntimeConfig.Azure.blobstoreDataplaneConfig(CONTROL_API_URI, AZURITE_HOST_PORT)));
+                    .configurationProvider(() -> RuntimeConfig.Azure.blobstoreDataplaneConfig(CONTROL_API_URI, AZURITE_HOST_PORT)))
+            .registerServiceMock(BdrsClient.class, new MockBdrsClient(
+                    bpn -> DID_PREFIX + bpn.replace(BPN_SUFFIX, ""),
+                    did -> BPN_PREFIX + did.replace(DID_PREFIX, "")));
 
     @RegisterExtension
     private static final MinioExtension MINIO_CONTAINER = new MinioExtension();
