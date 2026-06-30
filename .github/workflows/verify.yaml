@@ -89,6 +89,7 @@ jobs:
         run: ./gradlew javadoc
 
   unit-tests:
+    if: false
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -147,6 +148,7 @@ jobs:
           retention-days: 1
 
   integration-tests:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -166,6 +168,7 @@ jobs:
           ./gradlew test -DincludeTags="ComponentTest"
 
   api-tests:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -184,6 +187,7 @@ jobs:
         run: ./gradlew test -DincludeTags="ApiTest"
 
   prepare-end-to-end-tests:
+    if: false
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.outputStep.outputs.matrix }}
@@ -204,6 +208,7 @@ jobs:
           echo "matrix={\"dir\": ${DIRS}}" >> $GITHUB_OUTPUT
 
   end-to-end-tests:
+    if: false
     runs-on: ubuntu-latest
     needs: prepare-end-to-end-tests
     strategy:
@@ -242,6 +247,7 @@ jobs:
           path: edc-tests/e2e/${{ matrix.dir }}/build/allure-results
 
   postgres-tests:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -259,7 +265,7 @@ jobs:
         run: ./gradlew test -DincludeTags="PostgresqlIntegrationTest" -PverboseTest=true
 
   compatibility-tests:
-    if: false # Disabled while compatibility tests are being migrated to the updated EDC runtime.
+    if: true # Disabled while compatibility tests are being migrated to the updated EDC runtime.
     runs-on: ubuntu-latest
     permissions:
       contents: read

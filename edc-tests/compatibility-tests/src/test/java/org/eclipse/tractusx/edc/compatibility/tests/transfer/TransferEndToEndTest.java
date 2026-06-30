@@ -76,7 +76,7 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_CONNECTOR_MANAGEME
 import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipant;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipantContext;
-import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_08;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.inForceDatePolicyLegacy;
 
 @CompatibilityTest
@@ -246,7 +246,7 @@ public class TransferEndToEndTest {
         provider.createAsset(assetId, Map.of("description", "description"), dataAddressProperties);
         var contractPolicyId = provider.createPolicyDefinition(contractPolicy);
         var noConstraintPolicyId = provider.createPolicyDefinition(noConstraintPolicy());
-
+        //  provider.createContractDefinition(assetId, UUID.randomUUID().toString(), noConstraintPolicyId, contractPolicyId);
         createContractDefinitionLegacyManagementContext(provider, assetId, UUID.randomUUID().toString(), noConstraintPolicyId, contractPolicyId);
     }
 
@@ -268,7 +268,7 @@ public class TransferEndToEndTest {
                 .build();
 
         return participant.baseManagementRequest()
-                .basePath("/v3")
+                .basePath("/v4")
                 .contentType(JSON)
                 .body(requestBody)
                 .when()
@@ -292,8 +292,8 @@ public class TransferEndToEndTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(REMOTE_PARTICIPANT, LOCAL_PARTICIPANT, DSP_08),
-                    Arguments.of(LOCAL_PARTICIPANT, REMOTE_PARTICIPANT, DSP_08)
+                    Arguments.of(REMOTE_PARTICIPANT, LOCAL_PARTICIPANT, DSP_2025),
+                    Arguments.of(LOCAL_PARTICIPANT, REMOTE_PARTICIPANT, DSP_2025)
             );
         }
     }
