@@ -76,6 +76,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
     public static final Duration ASYNC_POLL_INTERVAL = ofSeconds(1);
     private static final String CONSUMER_PROXY_API_KEY = "consumerProxyKey";
     private static final String API_KEY_HEADER_NAME = "x-api-key";
+    public static final String DOCKER_HOST_PROPERTY = "tx.test.docker.host";
     protected final LazySupplier<URI> dataPlaneProxy = new LazySupplier<>(() -> URI.create("http://localhost:" + getFreePort()));
     protected final LazySupplier<URI> dataPlanePublic = new LazySupplier<>(() -> URI.create("http://localhost:" + getFreePort() + "/public"));
     protected ParticipantEdrApi edrs;
@@ -127,7 +128,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 put("web.http.management.auth.key", MANAGEMENT_API_KEY);
                 put("web.http.control.port", String.valueOf(getFreePort()));
                 put("web.http.control.path", "/control");
-                put("edc.dsp.callback.address", controlPlaneProtocol.get().toString());
+                put("edc.dsp.callback.address", externalUrl(controlPlaneProtocol.get().toString()));
                 put("web.http.public.path", dataPlanePublic.get().getPath());
                 put("web.http.public.port", String.valueOf(dataPlanePublic.get().getPort()));
                 put("edc.transfer.proxy.token.signer.privatekey.alias", getPrivateKeyAlias());
@@ -143,7 +144,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 put("edc.iam.sts.oauth.client.id", "test-clientid");
                 put("edc.iam.sts.oauth.client.secret.alias", "test-clientid-alias");
                 put("tx.edc.iam.dcp.bdrs.server.url", "http://sts.example.com");
-                put("edc.dataplane.api.public.baseurl", "%s/v2/data".formatted(dataPlanePublic.get()));
+                put("edc.dataplane.api.public.baseurl", externalUrl("%s/v2/data".formatted(dataPlanePublic.get())));
                 put("edc.policy.validation.enabled", "true");
                 put("edc.participant.context.id", participantContextId);
                 put("tractusx.edc.participant.bpn", getBpn());
@@ -339,7 +340,32 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
     }
 
     public String getBaseUrl() {
-        return controlPlaneProtocol.get().toString();
+        return externalUrl(controlPlaneProtocol.get().toString());
+    }
+
+    /**
+     * The protocol URL advertised to counterparties. Overridden so that, when the
+     * {@link #DOCKER_HOST_PROPERTY} is set, a counterparty running inside a Docker container can
+     * reach this participant (see {@link #externalUrl(String)}).
+     */
+    @Override
+    public String getProtocolUrl() {
+        return externalUrl(super.getProtocolUrl());
+    }
+
+    /**
+     * Rewrites the host of a {@code localhost} URL to the host configured via {@link #DOCKER_HOST_PROPERTY}.
+     * If the property is not set (the default, e.g. on Linux CI), the URL is returned unchanged.
+     *
+     * @param url the URL to adapt, may be {@code null}
+     * @return the adapted URL
+     */
+    protected static String externalUrl(String url) {
+        var dockerHost = System.getProperty(DOCKER_HOST_PROPERTY);
+        if (url == null || dockerHost == null || dockerHost.isBlank()) {
+            return url;
+        }
+        return url.replace("//localhost:", "//" + dockerHost + ":");
     }
     // End of section with helper functions removed from upstream
 

@@ -175,6 +175,7 @@ public class DismantlerCredentialConstraintFunction<C extends ParticipantAgentPo
             });
             return list;
         }
+
         return List.of(object.toString().split(RIGHT_OPERAND_LIST_SEPARATOR)); // in case multiple values are encoded in a single string
     }
 }

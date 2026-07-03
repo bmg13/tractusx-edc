@@ -27,14 +27,19 @@ import org.eclipse.edc.connector.controlplane.test.system.utils.PolicyFixtures;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
 import org.eclipse.edc.spi.iam.AudienceResolver;
+import org.eclipse.edc.spi.iam.ClaimToken;
+import org.eclipse.edc.spi.iam.IdentityService;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.tractusx.edc.compatibility.tests.CompatibilityTest;
+import org.eclipse.tractusx.edc.compatibility.tests.fixtures.DockerHost;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.IdentityHubParticipant;
+import org.eclipse.tractusx.edc.compatibility.tests.fixtures.LegacyRemoteParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipantExtension;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.Runtimes;
 import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
+import org.eclipse.tractusx.edc.tests.MockVcIdentityService;
 import org.eclipse.tractusx.edc.tests.participant.DataspaceIssuer;
 import org.eclipse.tractusx.edc.tests.participant.DcpParticipant;
 import org.eclipse.tractusx.edc.tests.participant.TractusxDcpParticipantBase;
@@ -49,6 +54,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -77,10 +84,15 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipant;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipantContext;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
-import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.inForceDatePolicyLegacy;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025_PATH;
+import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.dataUsageEndDate;
 
 @CompatibilityTest
 public class TransferEndToEndTest {
+
+    static {
+        DockerHost.enable();
+    }
 
     protected static final IdentityHubParticipant IDENTITY_HUB_PARTICIPANT = IdentityHubParticipant.Builder.newInstance()
             .name("identity-hub")
@@ -89,14 +101,17 @@ public class TransferEndToEndTest {
 
     protected static final DataspaceIssuer ISSUER = DataspaceIssuer.Builder.newInstance().id("issuer").name("issuer")
             .did(IDENTITY_HUB_PARTICIPANT.didFor("issuer"))
+            .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
     protected static final RemoteParticipant REMOTE_PARTICIPANT = RemoteParticipant.Builder.newInstance()
             .name("remote")
-            .id(IDENTITY_HUB_PARTICIPANT.bpnFor("remote"))
+            .id(IDENTITY_HUB_PARTICIPANT.didFor("remote"))
             .stsUri(IDENTITY_HUB_PARTICIPANT.getSts())
             .did(IDENTITY_HUB_PARTICIPANT.didFor("remote"))
+            .bpn(IDENTITY_HUB_PARTICIPANT.bpnFor("remote"))
             .trustedIssuer(ISSUER.didUrl())
+            .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
     static final DcpParticipant LOCAL_PARTICIPANT = DcpParticipant.Builder.newInstance()
@@ -136,8 +151,29 @@ public class TransferEndToEndTest {
                                     .findFirst().orElseThrow().getKey();
                         }
                     })
-                    .registerServiceMock(AudienceResolver.class, message -> Result
-                            .success(DIDS.get(message.getCounterPartyId()))));
+                    .registerServiceMock(AudienceResolver.class, message -> {
+                        var audience = DIDS.get(message.getCounterPartyId());
+                        return audience != null
+                                ? Result.success(audience)
+                                : Result.failure("No DID found for counter-party: " + message.getCounterPartyId());
+                    }));
+/*
+            .registerServiceMock(IdentityService.class, new MockVcIdentityService(
+                    LOCAL_PARTICIPANT.getBpn(),
+                    LOCAL_PARTICIPANT.getDid(),
+                    (participantContextId, tokenRepresentation) -> {
+                        // Token validation logic - for testing, accept all tokens
+                        return Result.success(ClaimToken.Builder.newInstance()
+                                .claim("client_id", LOCAL_PARTICIPANT.getBpn())
+                                .claim("aud", LOCAL_PARTICIPANT.getDid())
+                                .claim("sub", LOCAL_PARTICIPANT.getDid())
+                                .build());
+                    }
+
+
+            );
+
+ */
 
     @Order(2)
     @RegisterExtension
@@ -154,26 +190,54 @@ public class TransferEndToEndTest {
             .options(wireMockConfig().dynamicPort())
             .build();
 
+    static {
+        DockerHost.enable();
+        // Configure audience mappings BEFORE runtime extensions are created
+        addAudienceMapping(REMOTE_PARTICIPANT, LOCAL_PARTICIPANT);
+        addAudienceMapping(LOCAL_PARTICIPANT, REMOTE_PARTICIPANT);
+    }
+
     @BeforeAll
     static void beforeAll() {
+        DockerHost.requireResolvable();
+
         configureParticipant(LOCAL_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipant(REMOTE_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipantContext(ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
+
+        // Add explicit audience mapping for both participants
+        //addAudienceMapping(REMOTE_PARTICIPANT, LOCAL_PARTICIPANT);
+        //addAudienceMapping(LOCAL_PARTICIPANT, REMOTE_PARTICIPANT);
 
         var vault = LOCAL_CONNECTOR.getService(Vault.class);
         vault.storeSecret(LOCAL_PARTICIPANT.getPrivateKeyAlias(), LOCAL_PARTICIPANT.getPrivateKeyAsString());
         vault.storeSecret(LOCAL_PARTICIPANT.getFullKeyId(), LOCAL_PARTICIPANT.getPublicKeyAsString());
         vault.storeSecret("client_secret_alias", "clientSecret");
+
+        var remoteKey = "testing.edc.bdrs.remote-" + UUID.randomUUID().toString().substring(0, 8);
+        System.setProperty(remoteKey + ".key", LOCAL_PARTICIPANT.getId());
+        System.setProperty(remoteKey + ".value", LOCAL_PARTICIPANT.getDid());
     }
+
+    private static void addAudienceMapping(TractusxDcpParticipantBase source, TractusxDcpParticipantBase target) {
+        // BPN to DID mapping
+        var bpnKey = "testing.edc.bdrs." + UUID.randomUUID().toString().substring(0, 8);
+        System.setProperty(bpnKey + ".key", target.getId());  // BPN
+        System.setProperty(bpnKey + ".value", target.getDid());
+
+        // DID to DID mapping (identity mapping for when counter-party is already a DID)
+        var didKey = "testing.edc.bdrs." + UUID.randomUUID().toString().substring(0, 8);
+        System.setProperty(didKey + ".key", target.getDid());  // DID
+        System.setProperty(didKey + ".value", target.getDid());
+    }
+
 
     @ParameterizedTest
     @ArgumentsSource(ParticipantsArgProvider.class)
     void httpPullTransfer(TractusxDcpParticipantBase consumer, TractusxDcpParticipantBase provider, String protocol) {
-        consumer.setProtocol(protocol);
-        provider.setProtocol(protocol);
         providerDataSource.stubFor(any(anyUrl()).willReturn(ok("data")));
         var assetId = UUID.randomUUID().toString();
-        var usagePolicy = inForceDatePolicyLegacy("gteq", "contractAgreement+0s", "lteq", "contractAgreement+5s");
+        var usagePolicy = dataUsageEndDate(Instant.now().plus(1, ChronoUnit.SECONDS).truncatedTo(ChronoUnit.SECONDS).toString());
         createResourcesOnProvider(provider, assetId, usagePolicy, httpSourceDataAddress());
 
         var transferProcessId = consumer.requestAssetFrom(assetId, provider)
@@ -203,8 +267,6 @@ public class TransferEndToEndTest {
     @ParameterizedTest
     @ArgumentsSource(ParticipantsArgProvider.class)
     void suspendAndResume_httpPull_dataTransfer(TractusxDcpParticipantBase consumer, TractusxDcpParticipantBase provider, String protocol) {
-        consumer.setProtocol(protocol);
-        provider.setProtocol(protocol);
         providerDataSource.stubFor(any(anyUrl()).willReturn(ok("data")));
         var assetId = UUID.randomUUID().toString();
         createResourcesOnProvider(provider, assetId, PolicyFixtures.noConstraintPolicy(), httpSourceDataAddress());
@@ -221,7 +283,7 @@ public class TransferEndToEndTest {
         var data = consumer.data().pullData(edr, Map.of("message", msg));
         assertThat(data).isNotNull().isEqualTo("data");
 
-        consumer.suspendTransfer(transferProcessId, "supension");
+        consumer.suspendTransfer(transferProcessId, "suspension");
 
         consumer.awaitTransferToBeInState(transferProcessId, SUSPENDED);
 
@@ -243,11 +305,68 @@ public class TransferEndToEndTest {
     }
 
     protected void createResourcesOnProvider(TractusxDcpParticipantBase provider, String assetId, JsonObject contractPolicy, Map<String, Object> dataAddressProperties) {
-        provider.createAsset(assetId, Map.of("description", "description"), dataAddressProperties);
-        var contractPolicyId = provider.createPolicyDefinition(contractPolicy);
-        var noConstraintPolicyId = provider.createPolicyDefinition(noConstraintPolicy());
-        //  provider.createContractDefinition(assetId, UUID.randomUUID().toString(), noConstraintPolicyId, contractPolicyId);
+        // The upstream Participant helper (EDC 0.17.x) drives the management API at /v4, but the stable
+        // connector only serves /v3. Since both the snapshot and the stable connector support the (now
+        // deprecated) v3 management API, all management calls in this compatibility test explicitly
+        // target v3 so that either connector can act as provider or consumer.
+        createAssetLegacyManagementContext(provider, assetId, Map.of("description", "description"), dataAddressProperties);
+        var contractPolicyId = createPolicyDefinitionLegacyManagementContext(provider, contractPolicy);
+        var noConstraintPolicyId = createPolicyDefinitionLegacyManagementContext(provider, noConstraintPolicy());
         createContractDefinitionLegacyManagementContext(provider, assetId, UUID.randomUUID().toString(), noConstraintPolicyId, contractPolicyId);
+    }
+
+    public void createAssetLegacyManagementContext(TractusxDcpParticipantBase participant, String assetId, Map<String, Object> properties, Map<String, Object> dataAddressProperties) {
+        var propertiesBuilder = createObjectBuilder();
+        properties.forEach((key, value) -> propertiesBuilder.add(key, String.valueOf(value)));
+
+        var dataAddressBuilder = createObjectBuilder().add(TYPE, "DataAddress");
+        dataAddressProperties.forEach((key, value) -> dataAddressBuilder.add(key, String.valueOf(value)));
+
+        var requestBody = createObjectBuilder()
+                .add(CONTEXT, createArrayBuilder().add(EDC_CONNECTOR_MANAGEMENT_CONTEXT))
+                .add(ID, assetId)
+                .add(TYPE, "Asset")
+                .add(EDC_NAMESPACE + "properties", propertiesBuilder.build())
+                .add(EDC_NAMESPACE + "dataAddress", dataAddressBuilder.build())
+                .build();
+
+        /*
+        remote-connector
+f370045b36ff
+connector-stable:latest
+30984:30984
+50411:50411
+
+         */
+        participant.baseManagementRequest()
+                .basePath("/v3")
+                .contentType(JSON)
+                .body(requestBody)
+                .when()
+                .post("/assets")
+                .then()
+                .log().ifValidationFails()
+                .statusCode(200);
+    }
+
+    public String createPolicyDefinitionLegacyManagementContext(TractusxDcpParticipantBase participant, JsonObject policy) {
+        var requestBody = createObjectBuilder()
+                .add(CONTEXT, createArrayBuilder().add(EDC_CONNECTOR_MANAGEMENT_CONTEXT))
+                .add(ID, UUID.randomUUID().toString())
+                .add(TYPE, "PolicyDefinition")
+                .add(EDC_NAMESPACE + "policy", policy)
+                .build();
+
+        return participant.baseManagementRequest()
+                .basePath("/v3")
+                .contentType(JSON)
+                .body(requestBody)
+                .when()
+                .post("/policydefinitions")
+                .then()
+                .log().ifValidationFails()
+                .statusCode(200)
+                .extract().jsonPath().getString(ID);
     }
 
     public String createContractDefinitionLegacyManagementContext(TractusxDcpParticipantBase participant, String assetId, String definitionId, String accessPolicyId, String contractPolicyId) {
@@ -268,7 +387,7 @@ public class TransferEndToEndTest {
                 .build();
 
         return participant.baseManagementRequest()
-                .basePath("/v4")
+                .basePath("/v3")
                 .contentType(JSON)
                 .body(requestBody)
                 .when()
@@ -282,7 +401,7 @@ public class TransferEndToEndTest {
     private @NotNull Map<String, Object> httpSourceDataAddress() {
         return Map.of(
                 EDC_NAMESPACE + "name", "transfer-test",
-                EDC_NAMESPACE + "baseUrl", "http://localhost:" + providerDataSource.getPort() + "/source",
+                EDC_NAMESPACE + "baseUrl", "http://" + DockerHost.host() + ":" + providerDataSource.getPort() + "/source",
                 EDC_NAMESPACE + "type", "HttpData",
                 EDC_NAMESPACE + "proxyQueryParams", "true"
         );

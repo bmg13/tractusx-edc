@@ -37,7 +37,7 @@ dependencies {
         exclude("org.eclipse.edc", "vault-hashicorp")
     }
     runtimeOnly(project(":edc-tests:runtime:runtime-compatibility:stable:extensions"))
-    runtimeOnly(stableLibs.edc.identity.trust.sts.remote.client)
+    runtimeOnly(stableLibs.edc.spi.decentralized.claims)
     runtimeOnly(stableLibs.edc.auth.oauth2.client)
 }
 
@@ -55,6 +55,11 @@ tasks.shadowJar {
     mergeServiceFiles()
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     archiveFileName.set("${project.name}.jar")
+    // Merge the Log4J2 `Log4j2Plugins.dat` caches so the bundled `log4j2.json` (shipped by the
+    // log4j2-monitor extension) is picked up in the shaded jar. Without this the container's Log4J2
+    // falls back to its default configuration (root logger at ERROR), which suppresses the INFO-level
+    // "Runtime <id> ready" line that the testcontainers wait strategy relies on.
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer())
 }
 
 // configure the "dockerize" task

@@ -37,6 +37,14 @@ public class RemoteParticipant extends DcpParticipant {
             "contractnegotiation", "policy", "transferprocess", "bpn",
             "policy-monitor", "edr", "dataplane", "accesstokendata", "dataplaneinstance");
 
+    /**
+     * Overridden to use the Docker-adapted URL when the runtime is in a container.
+     */
+    @Override
+    public String getProtocolUrl() {
+        return DockerHost.adapt(super.getProtocolUrl());
+    }
+
     public Config getConfig(DcpParticipant participant, PostgresExtension postgresql) {
         var postgresqlConfig = postgresql.getConfig(getName());
 
@@ -56,7 +64,7 @@ public class RemoteParticipant extends DcpParticipant {
                 put("edc.transfer.send.retry.base-delay.ms", "100");
                 put("edc.dsp.callback.address", controlPlaneProtocol.get().toString());
                 putAll(datasourceEnvironmentVariables("default", postgresqlConfig));
-                put("edc.iam.sts.oauth.token.url", stsUri.get().toString() + "/token");
+                put("edc.iam.sts.oauth.token.url", DockerHost.adapt(stsUri.get().toString()) + "/token");
                 put("edc.iam.sts.oauth.client.id", getDid());
                 put("edc.iam.sts.oauth.client.secret.alias", "client_secret_alias");
                 put("testing.edc.vaults.1.key", "client_secret_alias");
@@ -67,14 +75,24 @@ public class RemoteParticipant extends DcpParticipant {
                 put("testing.edc.vaults.3.value", getPublicKeyAsString());
                 put("edc.iam.issuer.id", getDid());
                 put("edc.iam.did.web.use.https", "false");
+                put("tractusx.edc.participant.bpn", getBpn());
                 put("testing.edc.bdrs.1.key", participant.getId());
                 put("testing.edc.bdrs.1.value", participant.getDid());
+                put("testing.edc.bdrs.2.key", getId()); // participant?
+                put("testing.edc.bdrs.2.value", getDid());
                 put("edc.iam.trusted-issuer.issuer.id", trustedIssuer);
                 put("edc.sql.schema.autocreate", "false");
+                put("edc.participant.context.id", "participant-context-id");
                 put("web.http.public.path", dataPlanePublic.get().getPath());
                 put("web.http.public.port", String.valueOf(dataPlanePublic.get().getPort()));
                 put("edc.transfer.proxy.token.signer.privatekey.alias", getPrivateKeyAlias());
                 put("edc.transfer.proxy.token.verifier.publickey.alias", getFullKeyId());
+                put("edc.core.retry.log.on.error", "true");
+                put("edc.core.retry.backoff.min", "1000");
+                put("edc.core.retry.backoff.max", "5000");
+                put("org.eclipse.edc.level", "DEBUG");
+                put("org.eclipse.tractusx.level", "DEBUG");
+                //put("tractusx.edc.participant.bpn", getBpn());
                 putAll(datasourceConfig(postgresqlConfig));
             }
         };
@@ -90,12 +108,13 @@ public class RemoteParticipant extends DcpParticipant {
             config.putAll(datasourceEnvironmentVariables(ds, postgresqlConfig));
         });
         config.put("org.eclipse.tractusx.edc.postgresql.migration.schema", postgresqlConfig.getString("tx.edc.postgresql.migration.schema"));
+        config.put("tx.edc.postgresql.migration.schema", postgresqlConfig.getString("tx.edc.postgresql.migration.schema"));
         return config;
     }
 
     private Map<String, String> datasourceEnvironmentVariables(String datasourceName, Config postgresqlConfig) {
         return Map.of(
-                "edc.datasource." + datasourceName + ".url", postgresqlConfig.getString("edc.datasource.default.url"),
+                "edc.datasource." + datasourceName + ".url", DockerHost.adapt(postgresqlConfig.getString("edc.datasource.default.url")),
                 "edc.datasource." + datasourceName + ".user", postgresqlConfig.getString("edc.datasource.default.user"),
                 "edc.datasource." + datasourceName + ".password", postgresqlConfig.getString("edc.datasource.default.password")
         );
@@ -107,8 +126,24 @@ public class RemoteParticipant extends DcpParticipant {
             super(new RemoteParticipant());
         }
 
+        protected Builder(RemoteParticipant participant) {
+            super(participant);
+        }
+
         public static Builder newInstance() {
             return new Builder();
+        }
+
+        /**
+         * Sets the protocol version and path for this participant.
+         *
+         * @param protocolName the protocol name (e.g., "dataspace-protocol-http:2025-1")
+         * @param path the protocol path (e.g., "/api/v1/dsp/2025-1")
+         * @return this builder
+         */
+        public Builder protocol(String protocolName, String path) {
+            participant.protocol = new Protocol(protocolName, path);
+            return protocolVersionPath(path);
         }
 
         @Override

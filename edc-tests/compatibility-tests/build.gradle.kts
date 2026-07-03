@@ -23,7 +23,7 @@ plugins {
 }
 
 configurations.all {
-    exclude("org.eclipse.edc", "decentralized-claims-core")
+    //exclude("org.eclipse.edc", "decentralized-claims-core")
     exclude("com.networknt", "json-schema-validator")
 }
 
