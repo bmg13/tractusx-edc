@@ -1,26 +1,56 @@
-/*******************************************************************************
- * Copyright (c) 2024 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
- * Copyright (c) 2026 Cofinity-X GmbH
- *
- * See the NOTICE file(s) distributed with this work for additional
- * information regarding copyright ownership.
- *
- * This program and the accompanying materials are made available under the
- * terms of the Apache License, Version 2.0 which is available at
- * https://www.apache.org/licenses/LICENSE-2.0.
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- ******************************************************************************/
-
 package org.eclipse.tractusx.edc.compatibility.tests.fixtures;
 
+import io.restassured.http.ContentType;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
+import org.eclipse.edc.connector.controlplane.test.system.utils.Participant;
+import org.eclipse.tractusx.edc.tests.participant.TractusxDcpParticipantBase;
+
+import java.io.StringReader;
+
+import static jakarta.json.Json.createObjectBuilder;
+
 public class LegacyRemoteParticipant extends RemoteParticipant {
+
+    public JsonObject getDatasetForAssetWithDid(String assetId, TractusxDcpParticipantBase provider) {
+        String counterPartyAddress = provider.getProtocolUrl();
+        if (!counterPartyAddress.endsWith("/2025-1")) {
+            counterPartyAddress = counterPartyAddress + "/2025-1";
+        }
+
+        var catalogRequest = createObjectBuilder()
+                .add("@context", createObjectBuilder().build())
+                .add("protocol", "dataspace-protocol-http:2025-1")
+                .add("counterPartyAddress", counterPartyAddress)
+                .add("counterPartyId", provider.getDid())
+                .add("querySpec", createObjectBuilder()
+                        .add("@type", "QuerySpecDto")
+                        .add("https://w3id.org/edc/v0.0.1/ns/offset", 0)
+                        .add("https://w3id.org/edc/v0.0.1/ns/limit", 50)
+                        .build())
+                .build();
+
+        var catalogResponse = baseManagementRequest()
+                .contentType(ContentType.JSON)
+                .body(catalogRequest)
+                .when()
+                .post("/v3/catalog/request")
+                .then()
+                .statusCode(200)
+                .extract()
+                .body()
+                .asString();
+
+        return Json.createReader(new StringReader(catalogResponse))
+                .readObject()
+                .getJsonArray("dcat:dataset")
+                .stream()
+                .map(JsonValue::asJsonObject)
+                .filter(dataset -> assetId.equals(dataset.getString("@id")))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Asset " + assetId + " not found in catalog"));
+    }
 
     public static class Builder extends RemoteParticipant.Builder {
 
