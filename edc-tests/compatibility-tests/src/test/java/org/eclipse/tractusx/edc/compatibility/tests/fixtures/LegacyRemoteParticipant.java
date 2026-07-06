@@ -1,10 +1,10 @@
 package org.eclipse.tractusx.edc.compatibility.tests.fixtures;
 
 import io.restassured.http.ContentType;
+import io.restassured.specification.RequestSpecification;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import org.eclipse.edc.connector.controlplane.test.system.utils.Participant;
 import org.eclipse.tractusx.edc.tests.participant.TractusxDcpParticipantBase;
 
 import java.io.StringReader;
@@ -20,14 +20,17 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
         }
 
         var catalogRequest = createObjectBuilder()
-                .add("@context", createObjectBuilder().build())
+                .add("@context", createObjectBuilder()
+                        .add("@vocab", "https://w3id.org/edc/v0.0.1/ns/")
+                        .build())
+                .add("@type", "CatalogRequest")
                 .add("protocol", "dataspace-protocol-http:2025-1")
                 .add("counterPartyAddress", counterPartyAddress)
                 .add("counterPartyId", provider.getDid())
                 .add("querySpec", createObjectBuilder()
-                        .add("@type", "QuerySpecDto")
-                        .add("https://w3id.org/edc/v0.0.1/ns/offset", 0)
-                        .add("https://w3id.org/edc/v0.0.1/ns/limit", 50)
+                        .add("@type", "QuerySpec")
+                        .add("offset", 0)
+                        .add("limit", 50)
                         .build())
                 .build();
 
@@ -35,8 +38,10 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
                 .contentType(ContentType.JSON)
                 .body(catalogRequest)
                 .when()
-                .post("/v3/catalog/request")
+                .post("/catalog/request")  // Remove /v3 or /v4 prefix
                 .then()
+                .log()
+                .ifError()
                 .statusCode(200)
                 .extract()
                 .body()
@@ -51,6 +56,12 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Asset " + assetId + " not found in catalog"));
     }
+
+    @Override
+    public RequestSpecification baseManagementRequest() {
+        return super.baseManagementRequest().basePath("/v3");
+    }
+
 
     public static class Builder extends RemoteParticipant.Builder {
 

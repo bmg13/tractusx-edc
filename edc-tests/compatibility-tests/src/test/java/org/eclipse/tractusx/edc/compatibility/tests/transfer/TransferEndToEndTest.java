@@ -21,25 +21,19 @@
 package org.eclipse.tractusx.edc.compatibility.tests.transfer;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import org.eclipse.edc.connector.controlplane.test.system.utils.PolicyFixtures;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
 import org.eclipse.edc.spi.iam.AudienceResolver;
-import org.eclipse.edc.spi.iam.ClaimToken;
-import org.eclipse.edc.spi.iam.IdentityService;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.tractusx.edc.compatibility.tests.CompatibilityTest;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.DockerHost;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.IdentityHubParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.LegacyRemoteParticipant;
-import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipantExtension;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.Runtimes;
 import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
-import org.eclipse.tractusx.edc.tests.MockVcIdentityService;
 import org.eclipse.tractusx.edc.tests.participant.DataspaceIssuer;
 import org.eclipse.tractusx.edc.tests.participant.DcpParticipant;
 import org.eclipse.tractusx.edc.tests.participant.TractusxDcpParticipantBase;
@@ -106,7 +100,7 @@ public class TransferEndToEndTest {
             .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
-    protected static final RemoteParticipant REMOTE_PARTICIPANT = RemoteParticipant.Builder.newInstance()
+    protected static final LegacyRemoteParticipant REMOTE_PARTICIPANT = LegacyRemoteParticipant.Builder.newInstance()
             .name("remote")
             .id(IDENTITY_HUB_PARTICIPANT.didFor("remote"))
             .stsUri(IDENTITY_HUB_PARTICIPANT.getSts())
@@ -242,19 +236,34 @@ public class TransferEndToEndTest {
         var usagePolicy = dataUsageEndDate(Instant.now().plus(1, ChronoUnit.SECONDS).truncatedTo(ChronoUnit.SECONDS).toString());
         createResourcesOnProvider(provider, assetId, usagePolicy, httpSourceDataAddress());
 
-        Thread.sleep(2000);
+        // Wait for catalog to update
+        await().atMost(ASYNC_TIMEOUT)
+                .pollInterval(ASYNC_POLL_INTERVAL)
+                .untilAsserted(() -> {
+                    // Try to fetch catalog to ensure it's available
+                    if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
+                        var dataset = legacyConsumer.getDatasetForAssetWithDid(assetId, provider);
+                        assertThat(dataset).isNotNull();
+                    }
+                });
 
         String transferProcessId;
 
         if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
-            var dataset = legacyConsumer.getDatasetForAssetWithDid(assetId, provider);
+            var dataset = await().atMost(ASYNC_TIMEOUT)
+                    .pollInterval(ASYNC_POLL_INTERVAL)
+                    .ignoreExceptions()
+                    .until(() -> legacyConsumer.getDatasetForAssetWithDid(assetId, provider),
+                            Objects::nonNull);
             assertThat(dataset).isNotNull();
             assertThat(dataset.getString("@id")).isEqualTo(assetId);
 
             var policy = dataset.getJsonObject("odrl:hasPolicy");
             var negotiationId = consumer.negotiateContract(provider, policy);
 
-            Thread.sleep(20000);
+            //var contractOfferId = dataset.getJsonArray("odrl:hasPolicy").getJsonObject(0).getString(ID);
+            //var contractOffer = legacyConsumer.negotiateContract(provider, assetId, contractOfferId, policy);
+            //transferProcessId = legacyConsumer.requestAsset(provider, contractOffer.getString(ID), assetId, httpSinkDataAddress(), protocol);
 
             var agreementId = consumer.baseManagementRequest()
                     .basePath("/v3")
@@ -312,12 +321,27 @@ public class TransferEndToEndTest {
 
             // Verify data was fetched
             await().atMost(ASYNC_TIMEOUT).untilAsserted(() -> {
-                providerDataSource.verify(1, getRequestedFor(urlPathEqualTo("/")));
+                providerDataSource.verify(1, getRequestedFor(urlPathEqualTo("/source")));
             });
         } else {
-            transferProcessId = "";
-        }
+            // LOCAL_PARTICIPANT (new connector) as consumer — standard path
+            transferProcessId = consumer.requestAssetFrom(assetId, provider)
+                    .withTransferType("HttpData-PULL")
+                    .execute();
 
+            consumer.awaitTransferToBeInState(transferProcessId, STARTED);
+
+            var edr = await().atMost(consumer.getTimeout())
+                    .until(() -> consumer.edrs().getEdr(transferProcessId), Objects::nonNull);
+
+            var msg = UUID.randomUUID().toString();
+            var data = consumer.data().pullData(edr, Map.of("message", msg));
+            assertThat(data).isNotNull().isEqualTo("data");
+
+            await().atMost(ASYNC_TIMEOUT).untilAsserted(() -> {
+                providerDataSource.verify(1, getRequestedFor(urlPathEqualTo("/source")));
+            });
+        }
 
         assertThat(transferProcessId).isNotNull().isNotEmpty();
     }
