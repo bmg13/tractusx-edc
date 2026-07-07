@@ -421,6 +421,7 @@ public class TransferEndToEndTest {
         createAssetLegacyManagementContext(provider, assetId, Map.of("description", "description"), dataAddressProperties);
         var contractPolicyId = createPolicyDefinitionLegacyManagementContext(provider, contractPolicy);
         var noConstraintPolicyId = createPolicyDefinitionLegacyManagementContext(provider, noConstraintPolicy());
+
         createContractDefinitionLegacyManagementContext(provider, assetId, UUID.randomUUID().toString(), noConstraintPolicyId, contractPolicyId);
     }
 
