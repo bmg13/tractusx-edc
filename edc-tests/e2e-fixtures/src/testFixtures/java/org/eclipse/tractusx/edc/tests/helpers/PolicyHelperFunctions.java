@@ -308,28 +308,32 @@ public class PolicyHelperFunctions {
     }
 
 
+    /**
+     * Creates an inForceDate policy using the plain ODRL context ("http://www.w3.org/ns/odrl.jsonld").
+     * <p>
+     * Important: {@code startDate}/{@code endDate} must be absolute ISO-8601 timestamps (e.g.
+     * {@code Instant.now().toString()}), NOT relative expressions like {@code "contractAgreement+5s"}.
+     * Older/legacy connectors (e.g. Saturn 0.12.1) validate that the policy in the contract agreement
+     * is equal to the one in the contract offer using a naive comparison, and don't know how to
+     * normalize the provider's rewrite of a relative expression into an absolute timestamp. Using
+     * absolute timestamps from the start means there's nothing to rewrite, so the offer and
+     * agreement policies stay identical across both legacy and current connector versions.
+     */
     public static JsonObject inForceDatePolicy(String operatorStart, Object startDate, String operatorEnd, Object endDate) {
         var constraint = Json.createObjectBuilder()
-                .add(TYPE, ODRL_LOGICAL_CONSTRAINT_TYPE)
+                .add("@type", "LogicalConstraint")
                 .add("and", Json.createArrayBuilder()
                         .add(atomicConstraint(EDC_NAMESPACE + "inForceDate", operatorStart, startDate, false))
                         .add(atomicConstraint(EDC_NAMESPACE + "inForceDate", operatorEnd, endDate, false))
-                        .add(frameworkAgreementConstraint())
-                        .add(usagePurposeConstraint())
                         .build())
                 .build();
 
-        var permission = Json.createObjectBuilder()
+        return policy(List.of(Json.createObjectBuilder()
                 .add("action", "use")
                 .add("constraint", constraint)
-                .build();
-
-        return Json.createObjectBuilder()
-                .add(CONTEXT, ODRL_CONTEXT)
-                .add(TYPE, "Set")
-                .add("permission", Json.createArrayBuilder().add(permission))
-                .build();
+                .build()));
     }
+
 
 
     private static JsonObject atomicConstraint(String leftOperand, String operator, Object rightOperand, boolean createRightOperandsAsArray) {

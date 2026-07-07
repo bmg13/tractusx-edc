@@ -80,10 +80,7 @@ import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFun
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipantContext;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025_PATH;
-import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.dataUsageEndDate;
-import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.dataUsageEndDateWithContext;
 import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.inForceDatePolicy;
-import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.policyDefinitionWithFrameworkAndUsage;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_POLL_INTERVAL;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_TIMEOUT;
 
@@ -210,35 +207,57 @@ public class TransferEndToEndTest {
         System.setProperty(didKey + ".value", target.getDid());
     }
 
-    private String executeLegacyTransfer(TractusxDcpParticipantBase consumer, TractusxDcpParticipantBase provider, String assetId) {
-        LegacyRemoteParticipant legacyConsumer = (LegacyRemoteParticipant) consumer;
+    private String executeLegacyTransfer(LegacyRemoteParticipant legacyConsumer, TractusxDcpParticipantBase provider, String assetId) {
         var dataset = await().atMost(ASYNC_TIMEOUT)
                 .pollInterval(ASYNC_POLL_INTERVAL)
                 .ignoreExceptions()
                 .until(() -> legacyConsumer.getDatasetForAssetWithDid(assetId, provider), Objects::nonNull);
 
         var catalogPolicy = dataset.getJsonArray("hasPolicy").get(0).asJsonObject();
-        var catalogContext = legacyConsumer.getLastCatalogContext();
-
-        var policy = createObjectBuilder(catalogPolicy)
-                .add("@type", "odrl:Offer")
-                .add("http://www.w3.org/ns/odrl/2/assigner", createObjectBuilder().add("@id", provider.getDid()))
-                .add("http://www.w3.org/ns/odrl/2/target", createObjectBuilder().add("@id", assetId))
-                .build();
 
         var counterPartyAddress = provider.getProtocolUrl();
         if (!counterPartyAddress.endsWith("/2025-1")) {
             counterPartyAddress = counterPartyAddress + "/2025-1";
         }
 
-        var requestContext = createArrayBuilder(catalogContext)
+        // Build the offer exactly as documented for a DSP 2025-1 contract negotiation
+        // (see docs/usage/management-api-walkthrough/05_contractnegotiations.md):
+        //
+        //  - Re-use the *compact* policy from the catalog verbatim (its @id, @type "Offer" and the
+        //    permission/constraint block with the compact "inForceDate" leftOperand). Only add the
+        //    required "target" (asset id) and "assigner" (provider identifier from the catalog's
+        //    participantId) as plain ODRL terms - NOT full IRIs and NOT wrapped in {"@id": ...}.
+        //  - Put the JSON-LD context on the OUTER request using the ODRL *profile* context, the
+        //    Catena-X policy context and "@vocab": edc. Do NOT nest a context inside the policy.
+        //
+        // This guarantees the legacy consumer expands our offer to exactly the same policy the
+        // provider later serializes into the contract agreement (both travel under the same ODRL
+        // profile + Catena-X policy contexts), so the "policy in the agreement equals the policy in
+        // the offer" check passes even for constraint-bearing policies like inForceDate. Nesting the
+        // catalog *serialization* context or using full odrl IRIs made the constraint expand
+        // differently and the legacy consumer rejected the agreement.
+        var providerId = legacyConsumer.getLastProviderParticipantId();
+        if (providerId == null) {
+            providerId = provider.getDid();
+        }
+
+        var policy = createObjectBuilder(catalogPolicy)
+                .add("target", assetId)
+                .add("assigner", providerId)
+                .build();
+
+        System.out.println("----------policy from catalogPolicy:");
+        System.out.println(policy);
+
+        var requestContext = createArrayBuilder()
+                .add("https://w3id.org/dspace/2025/1/odrl-profile.jsonld")
+                .add("https://w3id.org/catenax/2025/9/policy/context.jsonld")
                 .add(createObjectBuilder().add("@vocab", EDC_NAMESPACE))
-                .add(createObjectBuilder().add("odrl", "http://www.w3.org/ns/odrl/2/"))
                 .build();
 
         var contractRequest = createObjectBuilder()
                 .add("@context", requestContext)
-                .add("@type", "NegotiateEdrRequestDto")
+                .add("@type", "ContractRequest")
                 .add("counterPartyAddress", counterPartyAddress)
                 .add("protocol", DSP_2025)
                 .add("policy", policy)
@@ -259,7 +278,21 @@ public class TransferEndToEndTest {
         await()
                 .atMost(ASYNC_TIMEOUT)
                 .pollInterval(ASYNC_POLL_INTERVAL)
-                .until(() -> "FINALIZED".equals(legacyConsumer.getContractNegotiationState(negotiationId)));
+                .until(() -> {
+                    var state = legacyConsumer.getContractNegotiationState(negotiationId);
+                    if ("TERMINATED".equals(state)) {
+                        var errorDetail = legacyConsumer.baseManagementRequest()
+                                .when()
+                                .get("/contractnegotiations/{id}", negotiationId)
+                                .then()
+                                .statusCode(200)
+                                .extract()
+                                .jsonPath()
+                                .getString("errorDetail");
+                        throw new AssertionError("Contract negotiation " + negotiationId + " TERMINATED: " + errorDetail);
+                    }
+                    return "FINALIZED".equals(state);
+                });
 
         var agreementId = legacyConsumer.baseManagementRequest()
                 .when()
@@ -302,9 +335,11 @@ public class TransferEndToEndTest {
         provider.setProtocol(protocol);
         providerDataSource.stubFor(any(anyUrl()).willReturn(ok("data")));
         var assetId = UUID.randomUUID().toString();
-        var usagePolicy = policyDefinitionWithFrameworkAndUsage();
+        var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        var usagePolicy = inForceDatePolicy("gteq", now.minusSeconds(60).toString(), "lteq", now.plusSeconds(20).toString());
         createResourcesOnProvider(provider, assetId, usagePolicy, httpSourceDataAddress());
-
+        System.out.println("----------usagePolicy response:");
+        System.out.println(usagePolicy);
         String transferProcessId;
 
         if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
@@ -325,12 +360,12 @@ public class TransferEndToEndTest {
         var data = consumer.data().pullData(edr, Map.of("message", msg));
         assertThat(data).isNotNull().isEqualTo("data");
 
-        //// checks that the EDR is gone once the contract expires
-        //await().atMost(consumer.getTimeout())
-        //        .untilAsserted(() -> assertThatThrownBy(() -> consumer.edrs().getEdr(transferProcessId)));
-//
-        //// checks that transfer fails
-        //await().atMost(consumer.getTimeout()).untilAsserted(() -> assertThatThrownBy(() -> consumer.data().pullData(edr, Map.of("message", msg))));
+        // checks that the EDR is gone once the contract expires
+        await().atMost(consumer.getTimeout())
+                .untilAsserted(() -> assertThatThrownBy(() -> consumer.edrs().getEdr(transferProcessId)));
+
+        // checks that transfer fails
+        await().atMost(consumer.getTimeout()).untilAsserted(() -> assertThatThrownBy(() -> consumer.data().pullData(edr, Map.of("message", msg))));
 
         providerDataSource.verify(getRequestedFor(urlPathEqualTo("/source")));
     }
