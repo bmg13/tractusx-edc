@@ -33,12 +33,6 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
             counterPartyAddress = counterPartyAddress + "/2025-1";
         }
 
-        /*
-        	"@type": "CatalogRequest",
-	"protocol": "dataspace-protocol-http:2025-1",
-	"counterPartyAddress": "http://provider-control-plane:8282/api/v1/dsp/2025-1",
-	"counterPartyId": "did:web:portal-backend.beta.cofinity-x.com:api:administration:staticdata:did:BPNL000000000ISY",
-         */
         var catalogRequest = createObjectBuilder()
                 .add("@context", createObjectBuilder()
                         .add("@vocab", "https://w3id.org/edc/v0.0.1/ns/")
@@ -103,17 +97,6 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
         return super.baseManagementRequest().basePath("/v3");
     }
 
-/*
-    @Override
-    public RequestSpecification baseManagementRequest() {
-        return given()
-                .baseUri(controlPlaneManagement.get().toString())
-                .basePath("/v3")  // Explicitly set v3 for legacy participant
-                .when();
-    }
-
- */
-
     public static class Builder extends RemoteParticipant.Builder {
 
         protected Builder() {
@@ -124,8 +107,6 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
             return new Builder();
         }
 
-
-        // Override parent methods to return the correct builder type
         @Override
         public Builder name(String name) {
             super.name(name);

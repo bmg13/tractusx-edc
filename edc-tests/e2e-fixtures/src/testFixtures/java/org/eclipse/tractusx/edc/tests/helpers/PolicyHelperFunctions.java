@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -356,7 +357,7 @@ public class PolicyHelperFunctions {
                 .build()));
     }
 
-    public static JsonObject policyDefinitionWithFrameworkAndUsage(String policyId) {
+    public static JsonObject policyDefinitionWithFrameworkAndUsage() {
         var context = Json.createObjectBuilder()
                 .add("edc", "https://w3id.org/edc/v0.0.1/ns/")
                 .add("cx-policy", "https://w3id.org/catenax/policy/")
@@ -395,9 +396,8 @@ public class PolicyHelperFunctions {
                 .add(CONTEXT, Json.createArrayBuilder()
                         .add("http://www.w3.org/ns/odrl.jsonld")
                         .add(context))
-                //.add(TYPE, "PolicyDefinitionRequestDto")
                 .add(TYPE, "Set")
-                .add(ID, policyId)
+                .add(ID, UUID.randomUUID().toString())
                 .add("edc:policy", policy)
                 .build();
     }
