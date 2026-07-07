@@ -31,6 +31,7 @@ import org.eclipse.tractusx.edc.compatibility.tests.CompatibilityTest;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.DockerHost;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.IdentityHubParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.LegacyRemoteParticipant;
+import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipantExtension;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.Runtimes;
 import org.eclipse.tractusx.edc.spi.identity.mapper.BdrsClient;
@@ -48,6 +49,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -77,6 +80,9 @@ import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFun
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipantContext;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025_PATH;
+import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.dataUsageEndDate;
+import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.dataUsageEndDateWithContext;
+import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.inForceDatePolicy;
 import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.policyDefinitionWithFrameworkAndUsage;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_POLL_INTERVAL;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_TIMEOUT;
@@ -98,7 +104,7 @@ public class TransferEndToEndTest {
             .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
-    protected static final LegacyRemoteParticipant REMOTE_PARTICIPANT = LegacyRemoteParticipant.Builder.newInstance()
+    protected static final RemoteParticipant REMOTE_PARTICIPANT = LegacyRemoteParticipant.Builder.newInstance()
             .name("remote")
             .id(IDENTITY_HUB_PARTICIPANT.didFor("remote"))
             .stsUri(IDENTITY_HUB_PARTICIPANT.getSts())
@@ -115,6 +121,7 @@ public class TransferEndToEndTest {
             .did(IDENTITY_HUB_PARTICIPANT.didFor("local"))
             .bpn(IDENTITY_HUB_PARTICIPANT.bpnFor("local"))
             .trustedIssuer(ISSUER.didUrl())
+            .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
     private static final Map<String, String> DIDS = Map.of(
@@ -203,7 +210,8 @@ public class TransferEndToEndTest {
         System.setProperty(didKey + ".value", target.getDid());
     }
 
-    private String executeLegacyTransfer(LegacyRemoteParticipant legacyConsumer, TractusxDcpParticipantBase provider, String assetId) {
+    private String executeLegacyTransfer(TractusxDcpParticipantBase consumer, TractusxDcpParticipantBase provider, String assetId) {
+        LegacyRemoteParticipant legacyConsumer = (LegacyRemoteParticipant) consumer;
         var dataset = await().atMost(ASYNC_TIMEOUT)
                 .pollInterval(ASYNC_POLL_INTERVAL)
                 .ignoreExceptions()
@@ -317,6 +325,13 @@ public class TransferEndToEndTest {
         var data = consumer.data().pullData(edr, Map.of("message", msg));
         assertThat(data).isNotNull().isEqualTo("data");
 
+        //// checks that the EDR is gone once the contract expires
+        //await().atMost(consumer.getTimeout())
+        //        .untilAsserted(() -> assertThatThrownBy(() -> consumer.edrs().getEdr(transferProcessId)));
+//
+        //// checks that transfer fails
+        //await().atMost(consumer.getTimeout()).untilAsserted(() -> assertThatThrownBy(() -> consumer.data().pullData(edr, Map.of("message", msg))));
+
         providerDataSource.verify(getRequestedFor(urlPathEqualTo("/source")));
     }
 
@@ -328,11 +343,15 @@ public class TransferEndToEndTest {
         providerDataSource.stubFor(any(anyUrl()).willReturn(ok("data")));
         var assetId = UUID.randomUUID().toString();
         createResourcesOnProvider(provider, assetId, noConstraintPolicy(), httpSourceDataAddress());
-        var usagePolicy = policyDefinitionWithFrameworkAndUsage();
 
-        var transferProcessId = consumer.requestAssetFrom(assetId, provider)
-                .withTransferType("HttpData-PULL")
-                .execute();
+        String transferProcessId;
+        if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
+            transferProcessId = executeLegacyTransfer(legacyConsumer, provider, assetId);
+        } else {
+            transferProcessId = consumer.requestAssetFrom(assetId, provider)
+                    .withTransferType("HttpData-PULL")
+                    .execute();
+        }
 
         consumer.awaitTransferToBeInState(transferProcessId, STARTED);
 

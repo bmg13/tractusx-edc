@@ -30,6 +30,7 @@ import org.eclipse.edc.connector.controlplane.policy.spi.PolicyDefinition;
 import org.eclipse.edc.policy.model.AtomicConstraint;
 import org.eclipse.edc.policy.model.Operator;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -306,6 +307,31 @@ public class PolicyHelperFunctions {
                 .build();
     }
 
+
+    public static JsonObject inForceDatePolicy(String operatorStart, Object startDate, String operatorEnd, Object endDate) {
+        var constraint = Json.createObjectBuilder()
+                .add(TYPE, ODRL_LOGICAL_CONSTRAINT_TYPE)
+                .add("and", Json.createArrayBuilder()
+                        .add(atomicConstraint(EDC_NAMESPACE + "inForceDate", operatorStart, startDate, false))
+                        .add(atomicConstraint(EDC_NAMESPACE + "inForceDate", operatorEnd, endDate, false))
+                        .add(frameworkAgreementConstraint())
+                        .add(usagePurposeConstraint())
+                        .build())
+                .build();
+
+        var permission = Json.createObjectBuilder()
+                .add("action", "use")
+                .add("constraint", constraint)
+                .build();
+
+        return Json.createObjectBuilder()
+                .add(CONTEXT, ODRL_CONTEXT)
+                .add(TYPE, "Set")
+                .add("permission", Json.createArrayBuilder().add(permission))
+                .build();
+    }
+
+
     private static JsonObject atomicConstraint(String leftOperand, String operator, Object rightOperand, boolean createRightOperandsAsArray) {
         var builder = Json.createObjectBuilder()
                 .add(TYPE, ODRL_CONSTRAINT_TYPE)
@@ -357,6 +383,35 @@ public class PolicyHelperFunctions {
                 .build()));
     }
 
+    public static JsonObject dataUsageEndDateWithContext(String endDate) {
+        var context = Json.createObjectBuilder()
+                .add("edc", "https://w3id.org/edc/v0.0.1/ns/")
+                .add("cx-policy", CX_POLICY_2025_09_NS)
+                .build();
+
+        var constraints = Json.createArrayBuilder()
+                .add(atomicConstraint(DATA_USAGE_END_DATE_LITERAL, "eq", endDate, false))
+                .add(frameworkAgreementConstraint())
+                .add(usagePurposeConstraint())
+                .build();
+
+        var permission = Json.createObjectBuilder()
+                .add("action", "use")
+                .add("constraint", Json.createObjectBuilder()
+                        .add(TYPE, ODRL_LOGICAL_CONSTRAINT_TYPE)
+                        .add("and", constraints)
+                        .build())
+                .build();
+
+        return Json.createObjectBuilder()
+                .add(CONTEXT, Json.createArrayBuilder()
+                        .add("http://www.w3.org/ns/odrl.jsonld")
+                        .add(context))
+                .add(TYPE, "Set")
+                .add("permission", Json.createArrayBuilder().add(permission))
+                .build();
+    }
+
     public static JsonObject policyDefinitionWithFrameworkAndUsage() {
         var context = Json.createObjectBuilder()
                 .add("edc", "https://w3id.org/edc/v0.0.1/ns/")
@@ -376,6 +431,7 @@ public class PolicyHelperFunctions {
                         .add("operator", "eq")
                         .add("rightOperand", "cx.pcf.base:1")
                         .build())
+                .add(atomicConstraint(DATA_USAGE_END_DATE_LITERAL, "eq", Instant.now().plusSeconds(30), false))
                 .build();
 
         var permission = Json.createObjectBuilder()
