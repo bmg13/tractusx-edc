@@ -21,7 +21,11 @@
 package org.eclipse.tractusx.edc.compatibility.tests.transfer;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
 import org.eclipse.edc.spi.iam.AudienceResolver;
@@ -80,6 +84,7 @@ import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFun
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025_PATH;
 import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.dataUsageEndDate;
+import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.policyDefinitionWithFrameworkAndUsage;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_POLL_INTERVAL;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_TIMEOUT;
 
@@ -227,21 +232,59 @@ public class TransferEndToEndTest {
         System.setProperty(didKey + ".value", target.getDid());
     }
 
+    private JsonObject convertPermission(JsonObject permission) {
+
+        JsonArray constraints = permission.getJsonArray("constraint");
+
+        JsonArrayBuilder andBuilder = Json.createArrayBuilder();
+
+        for (JsonValue constraintValue : constraints) {
+
+            JsonObject constraint = constraintValue.asJsonObject();
+
+            JsonArray and = constraint.getJsonArray("and");
+
+            for (JsonValue andValue : and) {
+
+                JsonObject c = andValue.asJsonObject();
+
+                andBuilder.add(Json.createObjectBuilder()
+                        .add("odrl:leftOperand",
+                                Json.createObjectBuilder()
+                                        .add("@id", "cx-policy:" + c.getString("leftOperand")))
+                        .add("odrl:operator",
+                                Json.createObjectBuilder()
+                                        .add("@id", "odrl:" + c.getString("operator")))
+                        .add("odrl:rightOperand",
+                                c.getString("rightOperand")));
+            }
+        }
+
+        return Json.createObjectBuilder()
+                .add("odrl:action",
+                        Json.createObjectBuilder()
+                                .add("@id", "odrl:use"))
+                .add("odrl:constraint",
+                        Json.createObjectBuilder()
+                                .add("odrl:and", andBuilder))
+                .build();
+    }
 
     @ParameterizedTest
     @ArgumentsSource(ParticipantsArgProvider.class)
     void httpPullTransfer(TractusxDcpParticipantBase consumer, TractusxDcpParticipantBase provider, String protocol) throws InterruptedException {
         providerDataSource.stubFor(any(anyUrl()).willReturn(ok("data")));
         var assetId = UUID.randomUUID().toString();
-        var usagePolicy = dataUsageEndDate(Instant.now().plus(1, ChronoUnit.SECONDS).truncatedTo(ChronoUnit.SECONDS).toString());
+        //var usagePolicy = dataUsageEndDate(Instant.now().plus(1, ChronoUnit.SECONDS).truncatedTo(ChronoUnit.SECONDS).toString());
+        var usagePolicy = policyDefinitionWithFrameworkAndUsage("smt");
         createResourcesOnProvider(provider, assetId, usagePolicy, httpSourceDataAddress());
+        System.out.println("Created asset: " + assetId + " on provider: " + provider.getId() + " with usagePolicy: " + usagePolicy);
 
-        // Wait for catalog to update
         await().atMost(ASYNC_TIMEOUT)
                 .pollInterval(ASYNC_POLL_INTERVAL)
                 .untilAsserted(() -> {
-                    // Try to fetch catalog to ensure it's available
                     if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
+                        System.out.println("Provider DID: " + provider.getDid());
                         var dataset = legacyConsumer.getDatasetForAssetWithDid(assetId, provider);
                         assertThat(dataset).isNotNull();
                     }
@@ -249,32 +292,102 @@ public class TransferEndToEndTest {
 
         String transferProcessId;
 
+
+        /*
+                   var policy = Json.createObjectBuilder(catalogPolicy)
+                    .add("@id", catalogPolicy.getString("@id"))
+                    .add("@type", "http://www.w3.org/ns/odrl/2/Offer")
+                    .add("odrl:permission", catalogPolicy.getJsonArray("permission"))
+                    .add("odrl:assigner",
+                            Json.createObjectBuilder()
+                                    .add("@id", provider.getDid()))
+                    .add("odrl:target",
+                            Json.createObjectBuilder()
+                                    .add("@id", assetId))
+                    .build();
+         */
+
         if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
             var dataset = await().atMost(ASYNC_TIMEOUT)
                     .pollInterval(ASYNC_POLL_INTERVAL)
                     .ignoreExceptions()
-                    .until(() -> legacyConsumer.getDatasetForAssetWithDid(assetId, provider),
-                            Objects::nonNull);
+                    .until(() -> legacyConsumer.getDatasetForAssetWithDid(assetId, provider), Objects::nonNull);
+
+            var catalogPolicy = dataset.getJsonArray("hasPolicy").get(0).asJsonObject();
+
             assertThat(dataset).isNotNull();
             assertThat(dataset.getString("@id")).isEqualTo(assetId);
 
-            var policy = dataset.getJsonObject("odrl:hasPolicy");
-            var negotiationId = consumer.negotiateContract(provider, policy);
+            var policyArray = dataset.getJsonArray("hasPolicy");
 
-            //var contractOfferId = dataset.getJsonArray("odrl:hasPolicy").getJsonObject(0).getString(ID);
-            //var contractOffer = legacyConsumer.negotiateContract(provider, assetId, contractOfferId, policy);
-            //transferProcessId = legacyConsumer.requestAsset(provider, contractOffer.getString(ID), assetId, httpSinkDataAddress(), protocol);
+            assertThat(policyArray).isNotNull().isNotEmpty();
+            var catalogContext = legacyConsumer.getLastCatalogContext();
+
+            var policy = createObjectBuilder(catalogPolicy)
+                    .add("@type", "odrl:Offer")
+                    .add("http://www.w3.org/ns/odrl/2/assigner", createObjectBuilder().add("@id", provider.getDid()))
+                    .add("http://www.w3.org/ns/odrl/2/target", createObjectBuilder().add("@id", assetId))
+                    .build();
+
+            var counterPartyAddress = provider.getProtocolUrl();
+            if (!counterPartyAddress.endsWith("/2025-1")) {
+                counterPartyAddress = counterPartyAddress + "/2025-1";
+            }
+
+            var requestContext = createArrayBuilder(catalogContext)
+                    .add(createObjectBuilder().add("@vocab", EDC_NAMESPACE))
+                    .add(createObjectBuilder().add("odrl", "http://www.w3.org/ns/odrl/2/"))
+                    .build();
+
+            var contractRequest = createObjectBuilder()
+                    .add("@context", requestContext)
+                    .add("@type", "NegotiateEdrRequestDto")
+                    .add("counterPartyAddress", counterPartyAddress)
+                    .add("protocol", DSP_2025)
+                    .add("policy", policy)
+                    //.add("providerId", provider.getDid())
+                    .build();
+
+            System.out.println("--------------Catalog policy:");
+            System.out.println(catalogPolicy);
+            //System.out.println("--------------Policy being sent in contract request:");
+            //System.out.println(policy.toString());
+            System.out.println("--------------ContractRequest being sent in contract request:");
+            System.out.println(contractRequest.toString());
+
+            var negotiationId = consumer.baseManagementRequest()
+                    .contentType(JSON)
+                    .body(contractRequest)
+                    .when()
+                    .post("/contractnegotiations")
+                    .then()
+                    .log().all()
+                    .statusCode(200)
+                    .extract()
+                    .jsonPath()
+                    .getString("'@id'");
+
+            //System.out.println("--------------Full dataset:");
+            //System.out.println(dataset);
+
+            await()
+                    .atMost(ASYNC_TIMEOUT)
+                    .pollInterval(ASYNC_POLL_INTERVAL)
+                    .until(() -> {
+                        var state = consumer.getContractNegotiationState(negotiationId);
+                        System.out.println("Negotiation state = " + state);
+                        return "FINALIZED".equals(state);
+                    });
 
             var agreementId = consumer.baseManagementRequest()
-                    .basePath("/v3")
-                    .contentType(JSON)
                     .when()
                     .get("/contractnegotiations/{id}", negotiationId)
                     .then()
                     .statusCode(200)
                     .extract()
                     .jsonPath()
-                    .getString("'edc:contractAgreementId'");
+                    .get("contractAgreementId")
+                    .toString();
 
             var transferRequest = createObjectBuilder()
                     .add(CONTEXT, createObjectBuilder()
@@ -285,6 +398,7 @@ public class TransferEndToEndTest {
                     .add("contractId", agreementId)
                     .add("assetId", assetId)
                     .add("protocol", protocol)
+                    //.add("counterPartyId", provider.getDid())
                     .add("transferType", "HttpData-PULL")
                     .build();
 
@@ -292,7 +406,7 @@ public class TransferEndToEndTest {
                     .contentType(JSON)
                     .body(transferRequest)
                     .when()
-                    .post("/v3/transferprocesses")
+                    .post("/transferprocesses")
                     .then()
                     .statusCode(200)
                     .extract()
@@ -309,6 +423,14 @@ public class TransferEndToEndTest {
                                 .isEqualTo(STARTED.toString());
                     });
 
+// CORRECT: transferProcessId is already set above from the transfer request
+            var edr = await().atMost(consumer.getTimeout())
+                    .until(() -> consumer.edrs().getEdr(transferProcessId), Objects::nonNull);
+
+            var msg = UUID.randomUUID().toString();
+            var data = consumer.data().pullData(edr, Map.of("message", msg));
+
+            /*
             // Get EDR for the transfer
             var edr = await().atMost(consumer.getTimeout())
                     .until(() -> consumer.edrs().getEdrEntriesByAssetId(assetId), list -> !list.isEmpty())
@@ -317,7 +439,16 @@ public class TransferEndToEndTest {
             // Do the transfer
             var msg = UUID.randomUUID().toString();
             var data = consumer.data().pullData((JsonObject) edr, Map.of("message", msg));
+
+             */
             assertThat(data).isNotNull().isEqualTo("data");
+
+            //// checks that the EDR is gone once the contract expires
+            //await().atMost(consumer.getTimeout())
+            //        .untilAsserted(() -> assertThatThrownBy(() -> consumer.edrs().getEdr(transferProcessId)));
+//
+            //// checks that transfer fails
+            //await().atMost(consumer.getTimeout()).untilAsserted(() -> assertThatThrownBy(() -> consumer.data().pullData(edr, Map.of("message", msg))));
 
             // Verify data was fetched
             await().atMost(ASYNC_TIMEOUT).untilAsserted(() -> {
@@ -337,6 +468,13 @@ public class TransferEndToEndTest {
             var msg = UUID.randomUUID().toString();
             var data = consumer.data().pullData(edr, Map.of("message", msg));
             assertThat(data).isNotNull().isEqualTo("data");
+
+            // checks that the EDR is gone once the contract expires
+            //await().atMost(consumer.getTimeout())
+            //        .untilAsserted(() -> assertThatThrownBy(() -> consumer.edrs().getEdr(transferProcessId)));
+//
+            //// checks that transfer fails
+            //await().atMost(consumer.getTimeout()).untilAsserted(() -> assertThatThrownBy(() -> consumer.data().pullData(edr, Map.of("message", msg))));
 
             await().atMost(ASYNC_TIMEOUT).untilAsserted(() -> {
                 providerDataSource.verify(1, getRequestedFor(urlPathEqualTo("/source")));

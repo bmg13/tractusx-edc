@@ -3,6 +3,7 @@ package org.eclipse.tractusx.edc.compatibility.tests.fixtures;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import org.eclipse.tractusx.edc.tests.participant.TractusxDcpParticipantBase;
@@ -13,12 +14,31 @@ import static jakarta.json.Json.createObjectBuilder;
 
 public class LegacyRemoteParticipant extends RemoteParticipant {
 
+
+    private JsonArray lastCatalogContext;
+    private String lastProviderParticipantId;
+
+
+    public JsonArray getLastCatalogContext() {
+        return lastCatalogContext;
+    }
+
+    public String getLastProviderParticipantId() {
+        return lastProviderParticipantId;
+    }
+
     public JsonObject getDatasetForAssetWithDid(String assetId, TractusxDcpParticipantBase provider) {
         String counterPartyAddress = provider.getProtocolUrl();
         if (!counterPartyAddress.endsWith("/2025-1")) {
             counterPartyAddress = counterPartyAddress + "/2025-1";
         }
 
+        /*
+        	"@type": "CatalogRequest",
+	"protocol": "dataspace-protocol-http:2025-1",
+	"counterPartyAddress": "http://provider-control-plane:8282/api/v1/dsp/2025-1",
+	"counterPartyId": "did:web:portal-backend.beta.cofinity-x.com:api:administration:staticdata:did:BPNL000000000ISY",
+         */
         var catalogRequest = createObjectBuilder()
                 .add("@context", createObjectBuilder()
                         .add("@vocab", "https://w3id.org/edc/v0.0.1/ns/")
@@ -35,22 +55,43 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
                 .build();
 
         var catalogResponse = baseManagementRequest()
+                .log()
+                .all()
                 .contentType(ContentType.JSON)
                 .body(catalogRequest)
                 .when()
-                .post("/catalog/request")  // Remove /v3 or /v4 prefix
+                .post("/catalog/request")
                 .then()
                 .log()
-                .ifError()
+                .all()
                 .statusCode(200)
                 .extract()
                 .body()
                 .asString();
 
-        return Json.createReader(new StringReader(catalogResponse))
-                .readObject()
-                .getJsonArray("dcat:dataset")
-                .stream()
+
+        System.out.println("Raw catalog response:");
+        System.out.println(catalogResponse);
+
+        var responseObject = Json.createReader(new StringReader(catalogResponse)).readObject();
+
+        lastCatalogContext = responseObject.getJsonArray("@context");
+        lastProviderParticipantId = responseObject.getString("participantId", null);
+        if (lastProviderParticipantId == null) {
+            lastProviderParticipantId = responseObject.getString("dspace:participantId", null);
+        }
+
+        var datasets = responseObject.getJsonArray("dcat:dataset");
+
+        if (datasets == null) {
+            datasets = responseObject.getJsonArray("dataset");
+        }
+
+        if (datasets == null) {
+            throw new AssertionError("No 'dcat:dataset' in catalog response for asset " + assetId + ", "+ responseObject);
+        }
+
+        return datasets.stream()
                 .map(JsonValue::asJsonObject)
                 .filter(dataset -> assetId.equals(dataset.getString("@id")))
                 .findFirst()
@@ -62,6 +103,16 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
         return super.baseManagementRequest().basePath("/v3");
     }
 
+/*
+    @Override
+    public RequestSpecification baseManagementRequest() {
+        return given()
+                .baseUri(controlPlaneManagement.get().toString())
+                .basePath("/v3")  // Explicitly set v3 for legacy participant
+                .when();
+    }
+
+ */
 
     public static class Builder extends RemoteParticipant.Builder {
 

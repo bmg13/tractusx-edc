@@ -356,6 +356,53 @@ public class PolicyHelperFunctions {
                 .build()));
     }
 
+    public static JsonObject policyDefinitionWithFrameworkAndUsage(String policyId) {
+        var context = Json.createObjectBuilder()
+                .add("edc", "https://w3id.org/edc/v0.0.1/ns/")
+                .add("cx-policy", "https://w3id.org/catenax/policy/")
+                .build();
+
+        var constraints = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add(TYPE, ODRL_LOGICAL_CONSTRAINT_TYPE)
+                        .add("leftOperand", "cx-policy:FrameworkAgreement")
+                        .add("operator", "eq")
+                        .add("rightOperand", "DataExchangeGovernance:1.0")
+                        .build())
+                .add(Json.createObjectBuilder()
+                        .add(TYPE, ODRL_LOGICAL_CONSTRAINT_TYPE)
+                        .add("leftOperand", "cx-policy:UsagePurpose")
+                        .add("operator", "eq")
+                        .add("rightOperand", "cx.pcf.base:1")
+                        .build())
+                .build();
+
+        var permission = Json.createObjectBuilder()
+                .add("action", "use")
+                .add("constraint", Json.createObjectBuilder()
+                        .add(TYPE, ODRL_LOGICAL_CONSTRAINT_TYPE)
+                        .add("and", constraints)
+                        .build())
+                .build();
+
+        var policy = Json.createObjectBuilder()
+                .add(TYPE, "Set")
+                .add("profile", "cx-policy:profile2405")
+                .add("permission", Json.createArrayBuilder().add(permission))
+                .build();
+
+        return Json.createObjectBuilder()
+                .add(CONTEXT, Json.createArrayBuilder()
+                        .add("http://www.w3.org/ns/odrl.jsonld")
+                        .add(context))
+                //.add(TYPE, "PolicyDefinitionRequestDto")
+                .add(TYPE, "Set")
+                .add(ID, policyId)
+                .add("edc:policy", policy)
+                .build();
+    }
+
+
     public static JsonObject dataProvisioningEndDurationDays(Integer duration) {
         var requiredUsagePermissionConstraints = Json.createObjectBuilder()
                 .add("@type", "LogicalConstraint")
