@@ -70,12 +70,12 @@ public class IdentityHubParticipant {
     }
 
     public URI getResolutionApi() {
-        return credentialsApi.get();
+        return URI.create(DockerHost.adapt(credentialsApi.get().toString()));
     }
 
     public String didFor(String participantId) {
         var didUri = didApi.get();
-        return "did:web:" + URLEncoder.encode(didUri.getHost() + ":" + didUri.getPort(), StandardCharsets.UTF_8) + ":" + participantId;
+        return "did:web:" + URLEncoder.encode(DockerHost.host() + ":" + didUri.getPort(), StandardCharsets.UTF_8) + ":" + participantId;
     }
 
     public String bpnFor(String participant) {
