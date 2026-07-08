@@ -3,7 +3,6 @@ package org.eclipse.tractusx.edc.compatibility.tests.fixtures;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import org.eclipse.tractusx.edc.tests.participant.TractusxDcpParticipantBase;
@@ -14,14 +13,7 @@ import static jakarta.json.Json.createObjectBuilder;
 
 public class LegacyRemoteParticipant extends RemoteParticipant {
 
-
-    private JsonArray lastCatalogContext;
     private String lastProviderParticipantId;
-
-
-    public JsonArray getLastCatalogContext() {
-        return lastCatalogContext;
-    }
 
     public String getLastProviderParticipantId() {
         return lastProviderParticipantId;
@@ -49,27 +41,19 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
                 .build();
 
         var catalogResponse = baseManagementRequest()
-                .log()
-                .all()
                 .contentType(ContentType.JSON)
                 .body(catalogRequest)
                 .when()
                 .post("/catalog/request")
                 .then()
-                .log()
-                .all()
+                .log().ifError()
                 .statusCode(200)
                 .extract()
                 .body()
                 .asString();
 
-
-        System.out.println("Raw catalog response:");
-        System.out.println(catalogResponse);
-
         var responseObject = Json.createReader(new StringReader(catalogResponse)).readObject();
 
-        lastCatalogContext = responseObject.getJsonArray("@context");
         lastProviderParticipantId = responseObject.getString("participantId", null);
         if (lastProviderParticipantId == null) {
             lastProviderParticipantId = responseObject.getString("dspace:participantId", null);

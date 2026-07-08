@@ -87,10 +87,6 @@ import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase
 @CompatibilityTest
 public class TransferEndToEndTest {
 
-    static {
-        DockerHost.enable();
-    }
-
     protected static final IdentityHubParticipant IDENTITY_HUB_PARTICIPANT = IdentityHubParticipant.Builder.newInstance()
             .name("identity-hub")
             .id("identity-hub")
@@ -173,8 +169,8 @@ public class TransferEndToEndTest {
 
     static {
         DockerHost.enable();
-        addAudienceMapping(REMOTE_PARTICIPANT, LOCAL_PARTICIPANT);
-        addAudienceMapping(LOCAL_PARTICIPANT, REMOTE_PARTICIPANT);
+        addAudienceMapping(REMOTE_PARTICIPANT);
+        addAudienceMapping(LOCAL_PARTICIPANT);
     }
 
     @BeforeAll
@@ -195,7 +191,7 @@ public class TransferEndToEndTest {
         System.setProperty(remoteKey + ".value", LOCAL_PARTICIPANT.getDid());
     }
 
-    private static void addAudienceMapping(TractusxDcpParticipantBase source, TractusxDcpParticipantBase target) {
+    private static void addAudienceMapping(TractusxDcpParticipantBase target) {
         // BPN to DID mapping
         var bpnKey = "testing.edc.bdrs." + UUID.randomUUID().toString().substring(0, 8);
         System.setProperty(bpnKey + ".key", target.getId());  // BPN
@@ -220,34 +216,14 @@ public class TransferEndToEndTest {
             counterPartyAddress = counterPartyAddress + "/2025-1";
         }
 
-        // Build the offer exactly as documented for a DSP 2025-1 contract negotiation
-        // (see docs/usage/management-api-walkthrough/05_contractnegotiations.md):
-        //
-        //  - Re-use the *compact* policy from the catalog verbatim (its @id, @type "Offer" and the
-        //    permission/constraint block with the compact "inForceDate" leftOperand). Only add the
-        //    required "target" (asset id) and "assigner" (provider identifier from the catalog's
-        //    participantId) as plain ODRL terms - NOT full IRIs and NOT wrapped in {"@id": ...}.
-        //  - Put the JSON-LD context on the OUTER request using the ODRL *profile* context, the
-        //    Catena-X policy context and "@vocab": edc. Do NOT nest a context inside the policy.
-        //
-        // This guarantees the legacy consumer expands our offer to exactly the same policy the
-        // provider later serializes into the contract agreement (both travel under the same ODRL
-        // profile + Catena-X policy contexts), so the "policy in the agreement equals the policy in
-        // the offer" check passes even for constraint-bearing policies like inForceDate. Nesting the
-        // catalog *serialization* context or using full odrl IRIs made the constraint expand
-        // differently and the legacy consumer rejected the agreement.
-        var providerId = legacyConsumer.getLastProviderParticipantId();
-        if (providerId == null) {
-            providerId = provider.getDid();
-        }
+        var providerId = legacyConsumer.getLastProviderParticipantId() != null
+                ? legacyConsumer.getLastProviderParticipantId()
+                : provider.getDid();
 
         var policy = createObjectBuilder(catalogPolicy)
                 .add("target", assetId)
                 .add("assigner", providerId)
                 .build();
-
-        System.out.println("----------policy from catalogPolicy:");
-        System.out.println(policy);
 
         var requestContext = createArrayBuilder()
                 .add("https://w3id.org/dspace/2025/1/odrl-profile.jsonld")
@@ -269,7 +245,7 @@ public class TransferEndToEndTest {
                 .when()
                 .post("/contractnegotiations")
                 .then()
-                .log().all()
+                .log().ifError()
                 .statusCode(200)
                 .extract()
                 .jsonPath()
@@ -338,8 +314,7 @@ public class TransferEndToEndTest {
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var usagePolicy = inForceDatePolicy("gteq", now.minusSeconds(60).toString(), "lteq", now.plusSeconds(20).toString());
         createResourcesOnProvider(provider, assetId, usagePolicy, httpSourceDataAddress());
-        System.out.println("----------usagePolicy response:");
-        System.out.println(usagePolicy);
+
         String transferProcessId;
 
         if (consumer instanceof LegacyRemoteParticipant legacyConsumer) {
