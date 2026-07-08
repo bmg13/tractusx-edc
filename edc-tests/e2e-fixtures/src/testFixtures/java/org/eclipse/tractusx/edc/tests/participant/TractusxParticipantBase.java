@@ -76,6 +76,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
     public static final Duration ASYNC_POLL_INTERVAL = ofSeconds(1);
     private static final String CONSUMER_PROXY_API_KEY = "consumerProxyKey";
     private static final String API_KEY_HEADER_NAME = "x-api-key";
+    public static final String DOCKER_HOST_PROPERTY = "tx.test.docker.host"; // todo: maybe remove
     protected final LazySupplier<URI> dataPlaneProxy = new LazySupplier<>(() -> URI.create("http://localhost:" + getFreePort()));
     protected final LazySupplier<URI> dataPlanePublic = new LazySupplier<>(() -> URI.create("http://localhost:" + getFreePort() + "/public"));
     protected ParticipantEdrApi edrs;
@@ -339,7 +340,20 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
     }
 
     public String getBaseUrl() {
-        return controlPlaneProtocol.get().toString();
+        return externalUrl(controlPlaneProtocol.get().toString());
+    }
+
+    @Override
+    public String getProtocolUrl() {
+        return externalUrl(super.getProtocolUrl());
+    }
+
+    protected static String externalUrl(String url) {
+        var dockerHost = System.getProperty(DOCKER_HOST_PROPERTY);
+        if (url == null || dockerHost == null || dockerHost.isBlank()) {
+            return url;
+        }
+        return url.replace("//localhost:", "//" + dockerHost + ":");
     }
     // End of section with helper functions removed from upstream
 
