@@ -71,12 +71,10 @@ public class AudienceSeedExtension implements ServiceExtension {
             var counterPartyId = message.getCounterPartyId();
             context.getMonitor().info("Resolving audience for counter-party: " + counterPartyId);
 
-            // If counter-party is already a DID, return it as-is
             if (counterPartyId.startsWith("did:")) {
                 return Result.success(counterPartyId);
             }
 
-            // Otherwise, look up BPN to DID mapping
             var audience = dids.get(counterPartyId);
             if (audience != null) {
                 return Result.success(audience);
@@ -85,7 +83,6 @@ public class AudienceSeedExtension implements ServiceExtension {
             return Result.failure("No DID found for counter-party: " + counterPartyId);
         };
     }
-
 
     private Map<String, String> readDidsMapping(ServiceExtensionContext context) {
         if (dids == null) {

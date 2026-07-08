@@ -127,14 +127,6 @@ public class LegacyRemoteParticipant extends RemoteParticipant {
             return this;
         }
 
-        /**
-         * Sets the protocol version and path for the remote participant.
-         * This is required for compatibility testing with specific DSP versions.
-         *
-         * @param protocol the protocol name (e.g., "dataspace-protocol-http:2025-1")
-         * @param path     the protocol path (e.g., "/api/v1/dsp/2025-1")
-         * @return this builder
-         */
         @Override
         public Builder protocol(String protocol, String path) {
             super.protocol(protocol, path);

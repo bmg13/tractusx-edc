@@ -87,12 +87,6 @@ public class RemoteParticipant extends DcpParticipant {
                 put("web.http.public.port", String.valueOf(dataPlanePublic.get().getPort()));
                 put("edc.transfer.proxy.token.signer.privatekey.alias", getPrivateKeyAlias());
                 put("edc.transfer.proxy.token.verifier.publickey.alias", getFullKeyId());
-                put("edc.core.retry.log.on.error", "true");
-                put("edc.core.retry.backoff.min", "1000");
-                put("edc.core.retry.backoff.max", "5000");
-                put("org.eclipse.edc.level", "DEBUG");
-                put("org.eclipse.tractusx.level", "DEBUG");
-                //put("tractusx.edc.participant.bpn", getBpn());
                 putAll(datasourceConfig(postgresqlConfig));
             }
         };

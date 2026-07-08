@@ -13,4 +13,3 @@ edc-core-spi = { module = "org.eclipse.edc:core-spi", version.ref = "edc" }
 tx-bdrs-client-spi = { module = "org.eclipse.tractusx.edc:bdrs-client-spi", version.ref = "tractusx" }
 edc-spi-decentralized-claims = { module = "org.eclipse.edc:decentralized-claims-spi", version.ref = "edc" }
 edc-auth-oauth2-client = { module = "org.eclipse.edc:oauth2-client", version.ref = "edc" }
-edc-iam-mock = { module = "org.eclipse.edc:iam-mock", version.ref = "edc" }

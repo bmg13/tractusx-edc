@@ -343,23 +343,11 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
         return externalUrl(controlPlaneProtocol.get().toString());
     }
 
-    /**
-     * The protocol URL advertised to counterparties. Overridden so that, when the
-     * {@link #DOCKER_HOST_PROPERTY} is set, a counterparty running inside a Docker container can
-     * reach this participant (see {@link #externalUrl(String)}).
-     */
     @Override
     public String getProtocolUrl() {
         return externalUrl(super.getProtocolUrl());
     }
 
-    /**
-     * Rewrites the host of a {@code localhost} URL to the host configured via {@link #DOCKER_HOST_PROPERTY}.
-     * If the property is not set (the default, e.g. on Linux CI), the URL is returned unchanged.
-     *
-     * @param url the URL to adapt, may be {@code null}
-     * @return the adapted URL
-     */
     protected static String externalUrl(String url) {
         var dockerHost = System.getProperty(DOCKER_HOST_PROPERTY);
         if (url == null || dockerHost == null || dockerHost.isBlank()) {

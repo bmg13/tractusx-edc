@@ -94,7 +94,6 @@ public class TransferEndToEndTest {
 
     protected static final DataspaceIssuer ISSUER = DataspaceIssuer.Builder.newInstance().id("issuer").name("issuer")
             .did(IDENTITY_HUB_PARTICIPANT.didFor("issuer"))
-            .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
     protected static final RemoteParticipant REMOTE_PARTICIPANT = LegacyRemoteParticipant.Builder.newInstance()
@@ -104,7 +103,6 @@ public class TransferEndToEndTest {
             .did(IDENTITY_HUB_PARTICIPANT.didFor("remote"))
             .bpn(IDENTITY_HUB_PARTICIPANT.bpnFor("remote"))
             .trustedIssuer(ISSUER.didUrl())
-            .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
     static final DcpParticipant LOCAL_PARTICIPANT = DcpParticipant.Builder.newInstance()
@@ -114,7 +112,6 @@ public class TransferEndToEndTest {
             .did(IDENTITY_HUB_PARTICIPANT.didFor("local"))
             .bpn(IDENTITY_HUB_PARTICIPANT.bpnFor("local"))
             .trustedIssuer(ISSUER.didUrl())
-            .protocol(DSP_2025, DSP_2025_PATH)
             .build();
 
     private static final Map<String, String> DIDS = Map.of(
