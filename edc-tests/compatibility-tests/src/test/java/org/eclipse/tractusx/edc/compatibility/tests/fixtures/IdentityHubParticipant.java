@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.eclipse.edc.util.io.Ports.getFreePort;
+import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant.HOST_DOCKER_INTERNAL;
 
 public class IdentityHubParticipant {
 
@@ -70,12 +71,12 @@ public class IdentityHubParticipant {
     }
 
     public URI getResolutionApi() {
-        return URI.create(DockerHost.adapt(credentialsApi.get().toString()));
+        return credentialsApi.get();
     }
 
     public String didFor(String participantId) {
         var didUri = didApi.get();
-        return "did:web:" + URLEncoder.encode(DockerHost.host() + ":" + didUri.getPort(), StandardCharsets.UTF_8) + ":" + participantId;
+        return "did:web:" + URLEncoder.encode(HOST_DOCKER_INTERNAL + ":" + didUri.getPort(), StandardCharsets.UTF_8) + ":" + participantId;
     }
 
     public String bpnFor(String participant) {

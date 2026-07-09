@@ -83,9 +83,6 @@ public final class DockerHost {
      * {@code UnknownHostException}s deep inside the connector.
      */
     public static void requireResolvable() {
-        if (!IS_MAC_OS) {
-            return;
-        }
         try {
             InetAddress.getByName(HOST_DOCKER_INTERNAL);
         } catch (UnknownHostException e) {

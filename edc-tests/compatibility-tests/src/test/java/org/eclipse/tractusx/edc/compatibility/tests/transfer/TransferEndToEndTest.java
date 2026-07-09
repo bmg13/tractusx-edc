@@ -78,6 +78,7 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_CONNECTOR_MANAGEME
 import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipant;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipantContext;
+import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant.HOST_DOCKER_INTERNAL;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.inForceDatePolicy;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_POLL_INTERVAL;
@@ -164,7 +165,6 @@ public class TransferEndToEndTest {
             .build();
 
     static {
-        DockerHost.enable();
         addAudienceMapping(REMOTE_PARTICIPANT);
         addAudienceMapping(LOCAL_PARTICIPANT);
     }
@@ -476,7 +476,7 @@ public class TransferEndToEndTest {
     private @NotNull Map<String, Object> httpSourceDataAddress() {
         return Map.of(
                 EDC_NAMESPACE + "name", "transfer-test",
-                EDC_NAMESPACE + "baseUrl", "http://" + DockerHost.host() + ":" + providerDataSource.getPort() + "/source",
+                EDC_NAMESPACE + "baseUrl", "http://" + HOST_DOCKER_INTERNAL + ":" + providerDataSource.getPort() + "/source",
                 EDC_NAMESPACE + "type", "HttpData",
                 EDC_NAMESPACE + "proxyQueryParams", "true"
         );
