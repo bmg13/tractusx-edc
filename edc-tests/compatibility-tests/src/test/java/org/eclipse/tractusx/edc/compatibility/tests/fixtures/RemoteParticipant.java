@@ -37,14 +37,6 @@ public class RemoteParticipant extends DcpParticipant {
             "contractnegotiation", "policy", "transferprocess", "bpn",
             "policy-monitor", "edr", "dataplane", "accesstokendata", "dataplaneinstance");
 
-    /**
-     * Overridden to use the Docker-adapted URL when the runtime is in a container.
-     */
-    @Override
-    public String getProtocolUrl() {
-        return super.getProtocolUrl();
-    }
-
     public Config getConfig(DcpParticipant participant, PostgresExtension postgresql) {
         var postgresqlConfig = postgresql.getConfig(getName());
 

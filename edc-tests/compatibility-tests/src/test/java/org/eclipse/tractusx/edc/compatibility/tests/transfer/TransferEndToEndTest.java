@@ -169,7 +169,6 @@ public class TransferEndToEndTest {
 
     @BeforeAll
     static void beforeAll() {
-
         configureParticipant(LOCAL_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipant(REMOTE_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipantContext(ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
@@ -473,7 +472,7 @@ public class TransferEndToEndTest {
     private @NotNull Map<String, Object> httpSourceDataAddress() {
         return Map.of(
                 EDC_NAMESPACE + "name", "transfer-test",
-                EDC_NAMESPACE + "baseUrl", "http://" + "localhost" + ":" + providerDataSource.getPort() + "/source",
+                EDC_NAMESPACE + "baseUrl", "http://localhost:" + providerDataSource.getPort() + "/source",
                 EDC_NAMESPACE + "type", "HttpData",
                 EDC_NAMESPACE + "proxyQueryParams", "true"
         );
