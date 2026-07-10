@@ -128,7 +128,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 put("web.http.management.auth.key", MANAGEMENT_API_KEY);
                 put("web.http.control.port", String.valueOf(getFreePort()));
                 put("web.http.control.path", "/control");
-                put("edc.dsp.callback.address", controlPlaneProtocol.get().toString());
+                put("edc.dsp.callback.address", externalUrl(controlPlaneProtocol.get().toString()));
                 put("web.http.public.path", dataPlanePublic.get().getPath());
                 put("web.http.public.port", String.valueOf(dataPlanePublic.get().getPort()));
                 put("edc.transfer.proxy.token.signer.privatekey.alias", getPrivateKeyAlias());
@@ -144,7 +144,7 @@ public abstract class TractusxParticipantBase extends IdentityParticipant {
                 put("edc.iam.sts.oauth.client.id", "test-clientid");
                 put("edc.iam.sts.oauth.client.secret.alias", "test-clientid-alias");
                 put("tx.edc.iam.dcp.bdrs.server.url", "http://sts.example.com");
-                put("edc.dataplane.api.public.baseurl", "%s/v2/data".formatted(dataPlanePublic.get()));
+                put("edc.dataplane.api.public.baseurl", externalUrl("%s/v2/data".formatted(dataPlanePublic.get())));
                 put("edc.policy.validation.enabled", "true");
                 put("edc.participant.context.id", participantContextId);
                 put("tractusx.edc.participant.bpn", getBpn());

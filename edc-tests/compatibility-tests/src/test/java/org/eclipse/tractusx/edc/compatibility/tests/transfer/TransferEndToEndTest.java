@@ -28,6 +28,7 @@ import org.eclipse.edc.spi.iam.AudienceResolver;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.tractusx.edc.compatibility.tests.CompatibilityTest;
+import org.eclipse.tractusx.edc.compatibility.tests.fixtures.DockerHost;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.IdentityHubParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.LegacyRemoteParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant;
@@ -77,7 +78,6 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_CONNECTOR_MANAGEME
 import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipant;
 import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.DcpHelperFunctions.configureParticipantContext;
-import static org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant.HOST_DOCKER_INTERNAL;
 import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 import static org.eclipse.tractusx.edc.tests.helpers.PolicyHelperFunctions.inForceDatePolicy;
 import static org.eclipse.tractusx.edc.tests.participant.TractusxParticipantBase.ASYNC_POLL_INTERVAL;
@@ -170,6 +170,8 @@ public class TransferEndToEndTest {
 
     @BeforeAll
     static void beforeAll() {
+        DockerHost.requireResolvable();
+
         configureParticipant(LOCAL_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipant(REMOTE_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipantContext(ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
@@ -473,7 +475,7 @@ public class TransferEndToEndTest {
     private @NotNull Map<String, Object> httpSourceDataAddress() {
         return Map.of(
                 EDC_NAMESPACE + "name", "transfer-test",
-                EDC_NAMESPACE + "baseUrl", "http://" + HOST_DOCKER_INTERNAL + ":" + providerDataSource.getPort() + "/source",
+                EDC_NAMESPACE + "baseUrl", "http://" + DockerHost.host() + ":" + providerDataSource.getPort() + "/source",
                 EDC_NAMESPACE + "type", "HttpData",
                 EDC_NAMESPACE + "proxyQueryParams", "true"
         );
