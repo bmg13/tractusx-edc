@@ -42,13 +42,13 @@ public class RemoteParticipant extends DcpParticipant {
      */
     @Override
     public String getProtocolUrl() {
-        return DockerHost.adapt(super.getProtocolUrl());
+        return super.getProtocolUrl();
     }
 
     public Config getConfig(DcpParticipant participant, PostgresExtension postgresql) {
         var postgresqlConfig = postgresql.getConfig(getName());
 
-        Map<String, String> settings =  new HashMap<>() {
+        Map<String, String> settings = new HashMap<>() {
             {
                 put("edc.participant.id", id);
                 put("edc.api.auth.key", MANAGEMENT_API_KEY);
@@ -64,7 +64,7 @@ public class RemoteParticipant extends DcpParticipant {
                 put("edc.transfer.send.retry.base-delay.ms", "100");
                 put("edc.dsp.callback.address", controlPlaneProtocol.get().toString());
                 putAll(datasourceEnvironmentVariables("default", postgresqlConfig));
-                put("edc.iam.sts.oauth.token.url", DockerHost.adapt(stsUri.get().toString()) + "/token");
+                put("edc.iam.sts.oauth.token.url", stsUri.get().toString() + "/token");
                 put("edc.iam.sts.oauth.client.id", getDid());
                 put("edc.iam.sts.oauth.client.secret.alias", "client_secret_alias");
                 put("testing.edc.vaults.1.key", "client_secret_alias");
@@ -106,7 +106,7 @@ public class RemoteParticipant extends DcpParticipant {
 
     private Map<String, String> datasourceEnvironmentVariables(String datasourceName, Config postgresqlConfig) {
         return Map.of(
-                "edc.datasource." + datasourceName + ".url", DockerHost.adapt(postgresqlConfig.getString("edc.datasource.default.url")),
+                "edc.datasource." + datasourceName + ".url", postgresqlConfig.getString("edc.datasource.default.url"),
                 "edc.datasource." + datasourceName + ".user", postgresqlConfig.getString("edc.datasource.default.user"),
                 "edc.datasource." + datasourceName + ".password", postgresqlConfig.getString("edc.datasource.default.password")
         );

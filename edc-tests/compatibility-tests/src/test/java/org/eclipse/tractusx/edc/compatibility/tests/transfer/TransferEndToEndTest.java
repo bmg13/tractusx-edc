@@ -28,7 +28,6 @@ import org.eclipse.edc.spi.iam.AudienceResolver;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.tractusx.edc.compatibility.tests.CompatibilityTest;
-import org.eclipse.tractusx.edc.compatibility.tests.fixtures.DockerHost;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.IdentityHubParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.LegacyRemoteParticipant;
 import org.eclipse.tractusx.edc.compatibility.tests.fixtures.RemoteParticipant;
@@ -170,7 +169,6 @@ public class TransferEndToEndTest {
 
     @BeforeAll
     static void beforeAll() {
-        DockerHost.requireResolvable();
 
         configureParticipant(LOCAL_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
         configureParticipant(REMOTE_PARTICIPANT, ISSUER, IDENTITY_HUB_PARTICIPANT, LOCAL_IDENTITY_HUB);
@@ -475,7 +473,7 @@ public class TransferEndToEndTest {
     private @NotNull Map<String, Object> httpSourceDataAddress() {
         return Map.of(
                 EDC_NAMESPACE + "name", "transfer-test",
-                EDC_NAMESPACE + "baseUrl", "http://" + DockerHost.host() + ":" + providerDataSource.getPort() + "/source",
+                EDC_NAMESPACE + "baseUrl", "http://" + "localhost" + ":" + providerDataSource.getPort() + "/source",
                 EDC_NAMESPACE + "type", "HttpData",
                 EDC_NAMESPACE + "proxyQueryParams", "true"
         );
