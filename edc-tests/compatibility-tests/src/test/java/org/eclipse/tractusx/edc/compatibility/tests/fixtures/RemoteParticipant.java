@@ -20,6 +20,9 @@
 
 package org.eclipse.tractusx.edc.compatibility.tests.fixtures;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import org.eclipse.edc.connector.controlplane.test.system.utils.Participant;
 import org.eclipse.edc.spi.system.configuration.Config;
 import org.eclipse.edc.spi.system.configuration.ConfigFactory;
 import org.eclipse.tractusx.edc.tests.participant.DcpParticipant;
@@ -29,13 +32,102 @@ import org.eclipse.tractusx.edc.tests.runtimes.PostgresExtension;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import static io.restassured.http.ContentType.JSON;
+import static jakarta.json.Json.createObjectBuilder;
+import static org.eclipse.edc.jsonld.spi.JsonLdKeywords.CONTEXT;
+import static org.eclipse.edc.jsonld.spi.JsonLdKeywords.ID;
+import static org.eclipse.edc.jsonld.spi.JsonLdKeywords.TYPE;
+import static org.eclipse.edc.jsonld.spi.PropertyAndTypeNames.ODRL_ASSIGNER_ATTRIBUTE;
+import static org.eclipse.edc.jsonld.spi.PropertyAndTypeNames.ODRL_TARGET_ATTRIBUTE;
+import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.edc.util.io.Ports.getFreePort;
+import static org.eclipse.tractusx.edc.tests.TestRuntimeConfiguration.DSP_2025;
 
 public class RemoteParticipant extends DcpParticipant {
     private final List<String> datasources = List.of("asset", "contractdefinition",
             "contractnegotiation", "policy", "transferprocess", "bpn",
             "policy-monitor", "edr", "dataplane", "accesstokendata", "dataplaneinstance");
+    private final Map<String, String> agreementAssetIds = new ConcurrentHashMap<>();
+
+    private static final String HTTP_PULL_TRANSFER_TYPE = "HttpData-PULL";
+
+    @Override
+    public String getProtocolUrl() {
+        return DockerHost.adapt(super.getProtocolUrl());
+    }
+
+    @Override
+    public RequestAsset requestAssetFrom(String assetId, Participant provider) {
+        return super.requestAssetFrom(assetId, provider);
+    }
+
+    @Override
+    public String negotiateContract(Participant provider, JsonObject offer) {
+        var participant = asDcpParticipant(provider);
+        if (participant == null) {
+            return super.negotiateContract(provider, offer);
+        }
+
+        var correctedOffer = createObjectBuilder(offer)
+                .add(ODRL_ASSIGNER_ATTRIBUTE, createObjectBuilder().add(ID, participant.getDid()))
+                .build();
+
+        var agreementId = super.negotiateContract(provider, correctedOffer);
+        agreementAssetIds.put(agreementId, extractAssetId(offer));
+        return agreementId;
+    }
+
+    @Override
+    public String initiateTransfer(Participant provider, String agreementId, JsonObject privateProperties, JsonObject destination, String transferType, JsonArray callbacks) {
+        var participant = asDcpParticipant(provider);
+        if (participant == null) {
+            return super.initiateTransfer(provider, agreementId, privateProperties, destination, transferType, callbacks);
+        }
+        var assetId = agreementAssetIds.remove(agreementId);
+        return createTransferProcess(participant, agreementId, assetId, transferType);
+    }
+
+    private String createTransferProcess(TractusxDcpParticipantBase provider, String agreementId, String assetId, String transferType) {
+        var transferRequest = createObjectBuilder()
+                .add(CONTEXT, createObjectBuilder()
+                        .add("@vocab", EDC_NAMESPACE)
+                        .build())
+                .add(TYPE, "TransferRequest")
+                .add("counterPartyAddress", provider.getProtocolUrl())
+                .add("contractId", agreementId)
+                .add("assetId", assetId)
+                .add("protocol", DSP_2025)
+                .add("transferType", transferType != null ? transferType : HTTP_PULL_TRANSFER_TYPE)
+                .build();
+
+        return baseManagementRequest()
+                .contentType(JSON)
+                .body(transferRequest)
+                .when()
+                .post("/transferprocesses")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("'@id'");
+    }
+
+    private String extractAssetId(JsonObject offer) {
+        if (offer == null) {
+            return null;
+        }
+        var target = offer.get(ODRL_TARGET_ATTRIBUTE);
+        if (target instanceof JsonObject targetObj) {
+            return targetObj.getString(ID, null);
+        }
+        return null;
+    }
+
+    private TractusxDcpParticipantBase asDcpParticipant(Participant provider) {
+        return provider instanceof TractusxDcpParticipantBase remoteParticipant ? remoteParticipant : null;
+    }
 
     public Config getConfig(DcpParticipant participant, PostgresExtension postgresql) {
         var postgresqlConfig = postgresql.getConfig(getName());
