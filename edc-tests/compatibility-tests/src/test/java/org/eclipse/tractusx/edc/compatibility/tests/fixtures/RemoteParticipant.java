@@ -54,11 +54,6 @@ public class RemoteParticipant extends DcpParticipant {
     private static final String HTTP_PULL_TRANSFER_TYPE = "HttpData-PULL";
 
     @Override
-    public String getProtocolUrl() {
-        return DockerHost.adapt(super.getProtocolUrl());
-    }
-
-    @Override
     public RequestAsset requestAssetFrom(String assetId, Participant provider) {
         return super.requestAssetFrom(assetId, provider);
     }
